@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Monthly Tracker (Sync)</title>
+    <title>Tracker V8.1 (Read Only)</title>
     
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ffffff">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="white">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%232563eb'%3E%3Cpath d='M64 32C28.7 32 0 60.7 0 96v320c0 35.3 28.7 64 64 64h384c35.3 0 64-28.7 64-64V96c0-35.3-28.7-64-64-64H64zM224 352c0 17.7-14.3 32-32 32s-32-14.3-32-32v-96c0-17.7 14.3-32 32-32s32 14.3 32 32v96zm128 0c0 17.7-14.3 32-32 32s-32-14.3-32-32v-96c0-17.7 14.3-32 32-32s32 14.3 32 32v96z'/%3E%3C/svg%3E">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -25,31 +25,28 @@
         }
         body { display: flex; flex-direction: column; }
 
-        /* Page Animations */
+        /* Animations & Layout */
         .page-section { display: none; flex: 1; flex-direction: column; overflow: hidden; height: 100%; }
         .page-section.active { display: flex; animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn { from { opacity: 0.95; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Scrollbars */
         .custom-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-
-        /* Sticky Columns */
         .sticky-col { position: sticky; left: 0; background: white; z-index: 10; box-shadow: 2px 0 5px -2px rgba(0,0,0,0.1); }
         th.sticky-col { z-index: 20; }
 
-        /* Status Colors */
+        /* Colors */
         .status-0 { background-color: #f8fafc; color: #94a3b8; }
         .status-1 { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
         .status-2 { background-color: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
         .status-3 { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-
-        /* Nav Active State */
         .nav-btn.active { color: #2563eb; }
         .nav-btn.active .icon-container { background-color: #eff6ff; }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
+
+        /* READ ONLY UTILS */
+        body.read-only .edit-control { display: none !important; }
+        body.read-only .status-btn { pointer-events: none; }
+        body.read-only .sticky-col { background-color: #f8fafc; } /* Slight grey to indicate readonly */
     </style>
 </head>
 <body>
@@ -60,10 +57,9 @@
     <section id="page-home" class="page-section active">
         <header class="bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center shadow-sm shrink-0 z-30">
             <div class="flex flex-col cursor-pointer" onclick="toggleGroupDropdown()">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1">
                     <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Group</span>
-                    <!-- Sync Indicator Dot -->
-                    <div id="syncIndicator" class="w-2 h-2 rounded-full bg-slate-300" title="Offline"></div>
+                    <span id="syncStatus" class="w-2 h-2 rounded-full bg-slate-300" title="Offline"></span>
                 </div>
                 <div class="flex items-center gap-2">
                     <h1 id="headerGroupName" class="text-lg font-bold text-slate-800 truncate max-w-[150px]">Loading...</h1>
@@ -72,14 +68,20 @@
             </div>
             <div id="groupDropdown" class="absolute top-14 left-4 bg-white border border-slate-200 shadow-xl rounded-xl w-64 hidden z-50 p-2 space-y-1"></div>
             <div class="flex gap-2">
+                <!-- View Mode Indicator -->
+                <div id="readOnlyBadge" class="hidden px-2 py-1 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded border border-slate-200 flex items-center">Viewer</div>
+                
                 <button onclick="openGroupWhatsAppModal()" class="w-9 h-9 rounded-full bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition shadow-sm"><i class="fab fa-whatsapp text-lg"></i></button>
-                <button onclick="addNewRow()" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium shadow hover:bg-blue-700 transition flex items-center gap-1"><i class="fas fa-plus"></i> Add</button>
+                <button onclick="addNewRow()" class="edit-control px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium shadow hover:bg-blue-700 transition flex items-center gap-1"><i class="fas fa-plus"></i> Add</button>
             </div>
         </header>
         <div class="p-3 bg-slate-50 shrink-0">
             <div class="relative"><i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i><input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search names..." class="w-full pl-9 p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"></div>
         </div>
         <div class="flex-1 overflow-auto custom-scroll relative bg-white pb-24">
+            <!-- Pull to refresh hint -->
+            <div onclick="loadFromGitHub()" class="text-center text-xs text-slate-400 py-2 cursor-pointer active:text-blue-500"><i class="fas fa-sync-alt mr-1"></i> Tap to refresh data</div>
+            
             <table class="w-full text-left border-collapse min-w-max">
                 <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-bold sticky top-0 z-20 shadow-sm"><tr id="tableHeaderRow"></tr></thead>
                 <tbody id="trackerBody" class="text-sm"></tbody>
@@ -87,7 +89,7 @@
             <div id="emptyState" class="hidden flex flex-col items-center justify-center h-64 text-slate-400 p-8 text-center mt-10">
                 <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4"><i class="fas fa-user-plus text-2xl text-slate-300"></i></div>
                 <p>No people in this group yet.</p>
-                <button onclick="addNewRow()" class="mt-4 text-blue-600 font-medium text-sm">Add your first person</button>
+                <button onclick="addNewRow()" class="edit-control mt-4 text-blue-600 font-medium text-sm">Add your first person</button>
             </div>
         </div>
     </section>
@@ -96,7 +98,7 @@
     <section id="page-groups" class="page-section">
         <header class="bg-white border-b border-slate-200 px-4 py-4 shadow-sm shrink-0"><h1 class="text-xl font-bold text-slate-800">Manage Groups</h1><p class="text-xs text-slate-500">Create multiple lists</p></header>
         <div class="p-4 flex-1 overflow-y-auto custom-scroll pb-24">
-            <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex gap-2">
+            <div class="edit-control bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex gap-2">
                 <input type="text" id="newGroupInput" placeholder="New Group Name" class="flex-1 p-2 text-sm border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <button onclick="createGroup()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow hover:bg-blue-700">Create</button>
             </div>
@@ -108,51 +110,47 @@
     <!-- PAGE 3: COLUMNS -->
     <section id="page-columns" class="page-section">
         <header class="bg-white border-b border-slate-200 px-4 py-4 shadow-sm shrink-0 flex justify-between items-center"><div><h1 class="text-xl font-bold text-slate-800">Columns</h1><p id="colManagerSubtitle" class="text-xs text-slate-500">For Active Group</p></div></header>
-        <div class="p-4 bg-slate-50 border-b border-slate-200 shrink-0">
+        <div class="edit-control p-4 bg-slate-50 border-b border-slate-200 shrink-0">
             <div class="flex gap-2">
                 <input type="text" id="newColumnName" placeholder="New Column (e.g. Week 1)" class="flex-1 p-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <button onclick="addColumn()" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm shadow hover:bg-slate-700"><i class="fas fa-plus"></i></button>
             </div>
         </div>
         <div class="flex-1 overflow-y-auto custom-scroll p-4 pb-24" id="columnList"></div>
+        <div id="readOnlyMsg" class="hidden p-8 text-center text-slate-400">Column editing disabled in Viewer Mode.</div>
     </section>
 
     <!-- PAGE 4: TOOLS -->
     <section id="page-tools" class="page-section">
-        <header class="bg-white border-b border-slate-200 px-4 py-4 shadow-sm shrink-0"><h1 class="text-xl font-bold text-slate-800">Tools</h1><p class="text-xs text-slate-500">Sync & Backup</p></header>
+        <header class="bg-white border-b border-slate-200 px-4 py-4 shadow-sm shrink-0"><h1 class="text-xl font-bold text-slate-800">Tools</h1><p class="text-xs text-slate-500">Settings & Backup</p></header>
         <div class="p-4 space-y-4 flex-1 overflow-y-auto pb-24">
             
-            <!-- GitHub Card -->
+            <!-- GitHub Config -->
             <div class="bg-slate-800 text-white rounded-xl p-5 shadow-lg">
                 <div class="flex items-center gap-3 mb-3">
                     <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"><i class="fab fa-github text-xl"></i></div>
                     <div><h3 class="font-bold">Cloud Sync</h3><p id="ghStatusText" class="text-xs opacity-60">Not Connected</p></div>
                 </div>
                 <button onclick="openGitHubModal()" class="w-full py-2 bg-white text-slate-900 rounded-lg text-sm font-bold shadow-sm flex items-center justify-center gap-2">
-                    <i class="fas fa-cog"></i> Configure GitHub
+                    <i class="fas fa-cog"></i> Configure / Login
                 </button>
             </div>
 
-            <!-- Install Banner -->
-            <div id="installAppContainer" class="hidden bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-5 shadow-lg text-white">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"><i class="fas fa-download text-lg"></i></div>
-                    <div><h3 class="font-bold">Install App</h3><p class="text-xs opacity-90">Fullscreen Experience</p></div>
-                </div>
-                <button id="installBtn" class="w-full py-2 bg-white text-blue-600 rounded-lg text-sm font-bold shadow-sm">Install Now</button>
-            </div>
-
             <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                <h3 class="font-bold text-slate-800 mb-2">Import / Export</h3>
+                <div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><i class="fas fa-file-export"></i></div><div><h3 class="font-bold text-slate-800">Export Data</h3><p class="text-xs text-slate-500">Save current group</p></div></div>
                 <div class="grid grid-cols-2 gap-2">
-                    <button onclick="exportAction('email')" class="py-2 bg-slate-50 border rounded-lg text-sm font-medium text-slate-600">Email</button>
-                    <button onclick="exportAction('clipboard')" class="py-2 bg-slate-50 border rounded-lg text-sm font-medium text-slate-600">Copy</button>
-                    <button onclick="exportAction('download')" class="col-span-2 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium shadow-sm">Download CSV</button>
-                    <button onclick="document.getElementById('importInput').click()" class="col-span-2 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium shadow-sm">Import CSV</button>
+                    <button onclick="exportAction('email')" class="py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-slate-700">Email</button>
+                    <button onclick="exportAction('clipboard')" class="py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-sm font-medium text-slate-700">Copy</button>
+                    <button onclick="exportAction('download')" class="col-span-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium shadow-sm">Download File</button>
                 </div>
             </div>
 
-            <div class="bg-white border border-red-100 rounded-xl p-5 shadow-sm">
+            <!-- Dangerous controls hidden in Read Only -->
+            <div class="edit-control bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                <div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="fas fa-file-import"></i></div><div><h3 class="font-bold text-slate-800">Import Data</h3><p class="text-xs text-slate-500">Load CSV file</p></div></div>
+                <button onclick="document.getElementById('importInput').click()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm">Select CSV</button>
+            </div>
+            <div class="edit-control bg-white border border-red-100 rounded-xl p-5 shadow-sm mt-8">
                 <h3 class="font-bold text-red-600 mb-1">Reset Data</h3>
                 <button onclick="confirmClearAll()" class="w-full py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium">Delete Everything</button>
             </div>
@@ -175,21 +173,25 @@
         </button>
     </nav>
 
-    <!-- MODALS -->
-    
-    <!-- GitHub Config -->
+    <!-- GitHub Config Modal (UPDATED WITH READ ONLY TOGGLE) -->
     <div id="githubModal" class="fixed inset-0 bg-black/50 z-[120] hidden flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
             <div class="bg-slate-900 text-white p-4 border-b border-slate-800 flex justify-between items-center">
                 <div class="flex items-center gap-2"><i class="fab fa-github text-xl"></i><h3 class="font-bold text-lg">GitHub Sync</h3></div>
                 <button onclick="closeModal('githubModal')" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-5 space-y-3">
-                <p class="text-xs text-slate-500 mb-2">Sync data to a file named 'data.json' in your repo.</p>
-                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Username</label><input type="text" id="ghUser" class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
-                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Repository Name</label><input type="text" id="ghRepo" class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
-                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Personal Access Token</label><input type="password" id="ghToken" class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
-                <div class="text-[10px] text-slate-400">Token needs 'repo' permission.</div>
+                <p class="text-xs text-slate-500 mb-2">Enter details to sync data.json to your repo.</p>
+                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Username</label><input type="text" id="ghUser" placeholder="e.g. johndoe" class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
+                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Repository Name</label><input type="text" id="ghRepo" placeholder="e.g. my-tracker" class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
+                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Personal Access Token</label><input type="password" id="ghToken" placeholder="ghp_..." class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
+                
+                <!-- READ ONLY TOGGLE -->
+                <div class="flex items-center gap-2 mt-4 pt-2 border-t border-slate-100">
+                    <input type="checkbox" id="ghReadOnly" class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                    <label for="ghReadOnly" class="text-sm font-bold text-slate-700">Enable Read-Only Mode (Viewer)</label>
+                </div>
+                <p class="text-[10px] text-slate-400 leading-tight">If checked, this device will download data but cannot save changes or delete anything.</p>
             </div>
             <div class="p-4 bg-slate-50 border-t flex justify-end gap-2">
                 <button onclick="closeModal('githubModal')" class="px-4 py-2 text-slate-600 font-bold text-sm">Cancel</button>
@@ -198,6 +200,7 @@
         </div>
     </div>
 
+    <!-- (Other Modals: Edit, WhatsApp Group, Personal WA, Confirm, Group) SAME AS BEFORE -->
     <!-- Edit Person -->
     <div id="editModal" class="fixed inset-0 bg-black/50 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
@@ -212,7 +215,7 @@
             </div>
             <div class="p-4 bg-white border-t border-slate-200 flex justify-between items-center">
                 <button onclick="sendPersonalWhatsApp()" class="text-green-600 hover:bg-green-50 px-3 py-2 rounded-lg transition flex items-center gap-2 text-sm font-bold border border-transparent hover:border-green-100"><i class="fab fa-whatsapp text-xl"></i> Message</button>
-                <button onclick="saveDataFromModal()" class="px-6 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-200 font-bold text-sm">Save</button>
+                <button onclick="saveDataFromModal()" class="edit-control px-6 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-200 font-bold text-sm">Save</button>
             </div>
         </div>
     </div>
@@ -249,19 +252,12 @@
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-xs p-6 text-center"><i class="fas fa-exclamation-triangle text-3xl text-red-500 mb-3"></i><h3 id="confirmTitle" class="font-bold text-slate-800 text-lg">Confirm</h3><p id="confirmMessage" class="text-sm text-slate-500 my-2">Are you sure?</p><div class="flex justify-center gap-3 mt-4"><button onclick="closeConfirmModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-bold">No</button><button id="confirmBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold shadow-lg shadow-red-200">Yes</button></div></div>
     </div>
 
-    <!-- Group/Rename Modal (Shared) -->
+    <!-- Group/Rename Modal -->
     <div id="groupModal" class="fixed inset-0 bg-black/50 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"><div class="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center"><h3 id="groupModalTitle" class="font-bold text-lg text-slate-800">Group</h3><button onclick="closeModal('groupModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button></div><div class="p-6"><input type="hidden" id="groupIdInput"><label class="block text-xs font-bold text-slate-400 uppercase mb-1">Name</label><input type="text" id="groupNameInput" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"></div><div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2"><button id="btnDeleteGroup" onclick="deleteGroup()" class="mr-auto text-red-500 hover:text-red-700 text-xs font-bold uppercase hidden">Delete</button><button onclick="closeModal('groupModal')" class="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg text-sm font-bold">Cancel</button><button onclick="saveGroup()" class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg shadow font-bold text-sm">Save</button></div></div>
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"><div class="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center"><h3 id="groupModalTitle" class="font-bold text-lg text-slate-800">Group</h3><button onclick="closeModal('groupModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button></div><div class="p-6"><input type="hidden" id="groupIdInput"><label class="block text-xs font-bold text-slate-400 uppercase mb-1">Name</label><input type="text" id="groupNameInput" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"></div><div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2"><button id="btnDeleteGroup" onclick="deleteGroup()" class="edit-control mr-auto text-red-500 hover:text-red-700 text-xs font-bold uppercase hidden">Delete</button><button onclick="closeModal('groupModal')" class="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg text-sm font-bold">Cancel</button><button onclick="saveGroup()" class="edit-control px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg shadow font-bold text-sm">Save</button></div></div>
     </div>
 
     <script>
-        // --- SERVICE WORKER REGISTRATION (REQUIRED FOR PWA) ---
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js');
-            });
-        }
-
         // --- APP STATE ---
         const STORAGE_KEY = 'monthly_tracker_v8';
         const GH_CONFIG_KEY = 'tracker_gh_config';
@@ -270,63 +266,76 @@
         let app = { groups: [], activeGroupId: null, currentPage: 'home' };
         let ghConfig = null;
         let isSyncing = false;
-        let deferredPrompt;
 
         document.addEventListener('DOMContentLoaded', () => {
             // Load config
             const gh = localStorage.getItem(GH_CONFIG_KEY);
             if(gh) ghConfig = JSON.parse(gh);
             updateSyncStatus();
+            applyReadOnlyMode();
 
-            // Init Data
+            // Auto Sync on Load/Focus
             if(ghConfig) loadFromGitHub();
             else loadData();
             
-            navTo('home');
+            window.addEventListener('focus', () => { if(ghConfig) loadFromGitHub(); });
 
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault(); deferredPrompt = e;
-                document.getElementById('installAppContainer').classList.remove('hidden');
-            });
-            document.getElementById('installBtn').addEventListener('click', async () => {
-                if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; document.getElementById('installAppContainer').classList.add('hidden'); }
-            });
+            navTo('home');
         });
 
         // --- SYNC LOGIC ---
         function updateSyncStatus() {
             const ind = document.getElementById('syncIndicator');
             const txt = document.getElementById('ghStatusText');
-            if(isSyncing) { if(ind) ind.className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"; if(txt) txt.textContent="Syncing..."; }
-            else if(ghConfig) { if(ind) ind.className="w-2 h-2 rounded-full bg-green-500"; if(txt) txt.textContent="Connected to " + ghConfig.repo; }
-            else { if(ind) ind.className="w-2 h-2 rounded-full bg-slate-300"; if(txt) txt.textContent="Not Connected"; }
+            if(isSyncing) { 
+                if(ind) ind.className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"; 
+                if(txt) txt.textContent="Syncing..."; 
+            } else if(ghConfig) { 
+                if(ind) ind.className="w-2 h-2 rounded-full bg-green-500"; 
+                if(txt) txt.textContent="Connected to " + ghConfig.repo + (ghConfig.readOnly ? " (Read Only)" : ""); 
+            } else { 
+                if(ind) ind.className="w-2 h-2 rounded-full bg-slate-300"; 
+                if(txt) txt.textContent="Not Connected"; 
+            }
+            applyReadOnlyMode();
+        }
+
+        function applyReadOnlyMode() {
+            if(ghConfig && ghConfig.readOnly) {
+                document.body.classList.add('read-only');
+                document.getElementById('readOnlyBadge').classList.remove('hidden');
+                document.getElementById('readOnlyMsg').classList.remove('hidden');
+            } else {
+                document.body.classList.remove('read-only');
+                document.getElementById('readOnlyBadge').classList.add('hidden');
+                document.getElementById('readOnlyMsg').classList.add('hidden');
+            }
         }
 
         async function loadFromGitHub() {
             if(!ghConfig) return;
             isSyncing = true; updateSyncStatus();
             try {
-                // Use API to get content + SHA
                 const res = await fetch(`https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/data.json`, {
                     headers: { 'Authorization': `token ${ghConfig.token}`, 'Accept': 'application/vnd.github.v3+json' }
                 });
                 if(res.ok) {
                     const json = await res.json();
-                    // content is base64 encoded
-                    // Using UTF-8 decode trick for special chars
                     const content = decodeURIComponent(escape(atob(json.content)));
                     app = JSON.parse(content);
                     ghConfig.sha = json.sha; 
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(app));
-                    localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig)); // Update SHA
-                    updateHeaderGroup(); renderTable(); renderGroupsList();
+                    localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
+                    updateHeaderGroup(); renderTable(); renderGroupsList(); renderColumnManager();
                 }
-            } catch(e) { console.log(e); loadData(); } // Fallback local
+            } catch(e) { console.log(e); loadData(); }
             isSyncing = false; updateSyncStatus();
         }
 
         async function saveToGitHub() {
             if(!ghConfig) return;
+            if(ghConfig.readOnly) { console.log("Read Only Mode: Save Blocked"); return; }
+
             isSyncing = true; updateSyncStatus();
             try {
                 const content = btoa(unescape(encodeURIComponent(JSON.stringify(app))));
@@ -341,8 +350,7 @@
                     ghConfig.sha = json.content.sha;
                     localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
                 } else if(res.status === 409) {
-                    // Conflict, reload then save (simplistic merge)
-                    await loadFromGitHub(); await saveToGitHub();
+                    await loadFromGitHub(); await saveToGitHub(); // Conflict resolution
                 }
             } catch(e) { console.error(e); }
             isSyncing = false; updateSyncStatus();
@@ -354,6 +362,7 @@
                 document.getElementById('ghUser').value = ghConfig.user;
                 document.getElementById('ghRepo').value = ghConfig.repo;
                 document.getElementById('ghToken').value = ghConfig.token;
+                document.getElementById('ghReadOnly').checked = ghConfig.readOnly || false;
             }
         }
 
@@ -361,8 +370,10 @@
             const user = document.getElementById('ghUser').value.trim();
             const repo = document.getElementById('ghRepo').value.trim();
             const token = document.getElementById('ghToken').value.trim();
+            const readOnly = document.getElementById('ghReadOnly').checked;
+            
             if(user && repo && token) {
-                ghConfig = { user, repo, token, sha: null };
+                ghConfig = { user, repo, token, sha: null, readOnly: readOnly };
                 localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
                 closeModal('githubModal');
                 loadFromGitHub();
@@ -395,7 +406,7 @@
         function saveData() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(app));
             updateHeaderGroup();
-            saveToGitHub(); // Trigger Sync
+            saveToGitHub();
         }
 
         function resetData() {
@@ -423,6 +434,7 @@
             } else dd.classList.add('hidden');
         }
 
+        // --- RENDER TABLE (Updated with ReadOnly Checks) ---
         function renderTable() {
             const g = getActiveGroup();
             const tbody = document.getElementById('trackerBody');
@@ -432,7 +444,7 @@
 
             thead.innerHTML = `<th class="p-3 border-b border-r border-slate-200 sticky-col min-w-[140px] bg-slate-50">Name</th>`;
             g.columns.forEach(c => { thead.innerHTML += `<th class="p-3 border-b border-slate-200 text-center min-w-[60px]">${c.name}</th>`; });
-            thead.innerHTML += `<th class="p-3 border-b border-l border-slate-200 text-center w-[50px]"><i class="fas fa-cog"></i></th>`;
+            thead.innerHTML += `<th class="p-3 border-b border-l border-slate-200 text-center w-[50px] edit-control"><i class="fas fa-cog"></i></th>`;
 
             tbody.innerHTML = '';
             let count = 0;
@@ -441,13 +453,13 @@
                 count++;
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50";
-                let html = `<td class="p-2 border-b border-r border-slate-100 sticky-col bg-white"><div class="flex justify-between items-center"><div onclick="openEditModal('${p.id}')"><div class="font-bold text-slate-700 truncate max-w-[100px]">${p.name}</div><div class="text-[10px] text-slate-400 truncate max-w-[100px]">${p.details || '-'}</div></div><button onclick="openEditModal('${p.id}')" class="text-slate-300 hover:text-blue-500"><i class="fas fa-pencil-alt text-xs"></i></button></div></td>`;
+                let html = `<td class="p-2 border-b border-r border-slate-100 sticky-col bg-white"><div class="flex justify-between items-center"><div onclick="openEditModal('${p.id}')"><div class="font-bold text-slate-700 truncate max-w-[100px]">${p.name}</div><div class="text-[10px] text-slate-400 truncate max-w-[100px]">${p.details || '-'}</div></div><button onclick="openEditModal('${p.id}')" class="text-slate-300 hover:text-blue-500 edit-control"><i class="fas fa-pencil-alt text-xs"></i></button></div></td>`;
                 g.columns.forEach(c => {
                     const val = p.months[c.id] || 0;
                     const icons = ['','<i class="fas fa-check"></i>','<i class="fas fa-clock"></i>','<i class="fas fa-times"></i>'];
-                    html += `<td class="p-1 border-b border-slate-100 text-center"><button onclick="toggleStatus('${p.id}','${c.id}')" class="w-9 h-9 rounded-lg text-xs flex items-center justify-center mx-auto transition-transform active:scale-95 status-${val}">${icons[val]}</button></td>`;
+                    html += `<td class="p-1 border-b border-slate-100 text-center"><button onclick="toggleStatus('${p.id}','${c.id}')" class="w-9 h-9 rounded-lg text-xs flex items-center justify-center mx-auto transition-transform active:scale-95 status-${val} status-btn">${icons[val]}</button></td>`;
                 });
-                html += `<td class="p-2 border-b border-l border-slate-100 text-center"><button onclick="deletePerson('${p.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-trash"></i></button></td>`;
+                html += `<td class="p-2 border-b border-l border-slate-100 text-center edit-control"><button onclick="deletePerson('${p.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-trash"></i></button></td>`;
                 tr.innerHTML = html;
                 tbody.appendChild(tr);
             });
@@ -455,6 +467,7 @@
         }
 
         function toggleStatus(pid, cid) {
+            if(ghConfig && ghConfig.readOnly) return;
             const p = getActiveGroup().people.find(x => x.id === pid);
             if(p) { p.months[cid] = ((p.months[cid] || 0) + 1) % 4; saveData(); renderTable(); }
         }
@@ -467,11 +480,12 @@
                 const isActive = g.id === app.activeGroupId;
                 const div = document.createElement('div');
                 div.className = `p-4 rounded-xl border flex justify-between items-center ${isActive ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200'}`;
-                div.innerHTML = `<div onclick="switchGroup('${g.id}')" class="flex-1 cursor-pointer"><h3 class="font-bold text-sm ${isActive ? 'text-blue-700' : 'text-slate-700'}">${g.name}</h3><p class="text-[10px] text-slate-400">${g.people.length} People • ${g.columns.length} Cols</p></div><div class="flex gap-2"><button onclick="renameGroup('${g.id}')" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-blue-500 flex items-center justify-center"><i class="fas fa-edit text-xs"></i></button>${app.groups.length > 1 ? `<button onclick="deleteGroup('${g.id}')" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 flex items-center justify-center"><i class="fas fa-trash text-xs"></i></button>` : ''}</div>`;
+                div.innerHTML = `<div onclick="switchGroup('${g.id}')" class="flex-1 cursor-pointer"><h3 class="font-bold text-sm ${isActive ? 'text-blue-700' : 'text-slate-700'}">${g.name}</h3><p class="text-[10px] text-slate-400">${g.people.length} People • ${g.columns.length} Cols</p></div><div class="flex gap-2 edit-control"><button onclick="renameGroup('${g.id}')" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-blue-500 flex items-center justify-center"><i class="fas fa-edit text-xs"></i></button>${app.groups.length > 1 ? `<button onclick="deleteGroup('${g.id}')" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 flex items-center justify-center"><i class="fas fa-trash text-xs"></i></button>` : ''}</div>`;
                 list.appendChild(div);
             });
         }
         function createGroup() {
+            if(ghConfig && ghConfig.readOnly) return;
             const name = document.getElementById('newGroupInput').value.trim();
             if(!name) return;
             const newId = crypto.randomUUID();
@@ -482,6 +496,7 @@
         function switchGroup(id) { app.activeGroupId = id; saveData(); renderGroupsList(); }
         function renameGroup(id) { openGroupModal('edit', id); }
         function deleteGroup(id) {
+            if(ghConfig && ghConfig.readOnly) return;
             const gid = id || document.getElementById('groupIdInput').value;
             const g = app.groups.find(x => x.id === gid);
             showConfirmModal("Delete Group", `Delete "${g.name}"?`, () => {
@@ -505,6 +520,7 @@
             });
         }
         function addColumn() {
+            if(ghConfig && ghConfig.readOnly) return;
             const name = document.getElementById('newColumnName').value.trim();
             if(!name) return;
             const g = getActiveGroup();
@@ -514,15 +530,16 @@
             document.getElementById('newColumnName').value = '';
             saveData(); renderColumnManager();
         }
-        function updateColName(i, val) { getActiveGroup().columns[i].name = val; saveData(); }
-        function moveCol(i, dir) { const g = getActiveGroup(); [g.columns[i], g.columns[i+dir]] = [g.columns[i+dir], g.columns[i]]; saveData(); renderColumnManager(); }
-        function delCol(i) { showConfirmModal("Delete Column", "Are you sure?", () => { getActiveGroup().columns.splice(i, 1); saveData(); renderColumnManager(); }); }
+        function updateColName(i, val) { if(ghConfig && ghConfig.readOnly) return; getActiveGroup().columns[i].name = val; saveData(); }
+        function moveCol(i, dir) { if(ghConfig && ghConfig.readOnly) return; const g = getActiveGroup(); [g.columns[i], g.columns[i+dir]] = [g.columns[i+dir], g.columns[i]]; saveData(); renderColumnManager(); }
+        function delCol(i) { if(ghConfig && ghConfig.readOnly) return; showConfirmModal("Delete Column", "Are you sure?", () => { getActiveGroup().columns.splice(i, 1); saveData(); renderColumnManager(); }); }
 
         // --- PERSON MODALS ---
         let editId = null, isAddMode = true;
         function addNewRow() { isAddMode = true; document.getElementById('modalTitle').textContent = "Add Person"; document.getElementById('editName').value = ''; document.getElementById('editDetails').value = ''; document.getElementById('editModal').classList.remove('hidden'); }
         function openEditModal(id) { isAddMode = false; editId = id; const p = getActiveGroup().people.find(x => x.id === id); document.getElementById('modalTitle').textContent = "Edit Person"; document.getElementById('editName').value = p.name; document.getElementById('editDetails').value = p.details; document.getElementById('editModal').classList.remove('hidden'); }
         function saveDataFromModal() {
+            if(ghConfig && ghConfig.readOnly) return;
             const name = document.getElementById('editName').value.trim();
             const details = document.getElementById('editDetails').value.trim();
             if(!name) return;
@@ -534,113 +551,40 @@
             } else { const p = g.people.find(x => x.id === editId); p.name = name; p.details = details; }
             saveData(); renderTable(); closeModal('editModal');
         }
-        function deletePerson(id) { showConfirmModal("Delete Person", "Are you sure?", () => { const g = getActiveGroup(); g.people = g.people.filter(p => p.id !== id); saveData(); renderTable(); }); }
+        function deletePerson(id) { 
+            if(ghConfig && ghConfig.readOnly) return;
+            showConfirmModal("Delete Person", "Are you sure?", () => { const g = getActiveGroup(); g.people = g.people.filter(p => p.id !== id); saveData(); renderTable(); }); 
+        }
 
-        // --- WHATSAPP ---
+        // --- WHATSAPP (Same as before) ---
         function openGroupWhatsAppModal() {
             const g = getActiveGroup();
-            const colSel = document.getElementById('waColumn');
-            colSel.innerHTML = '<option value="all">All Columns</option>';
-            g.columns.forEach(c => { const opt = document.createElement('option'); opt.value = c.id; opt.text = c.name; colSel.appendChild(opt); });
-            const list = document.getElementById('waPayeeList');
-            list.innerHTML = ''; document.getElementById('waPayeeSearch').value = ''; document.getElementById('waPayee').value = '';
+            const colSel = document.getElementById('waColumn'); colSel.innerHTML = '<option value="all">All Columns</option>'; g.columns.forEach(c => { const opt = document.createElement('option'); opt.value = c.id; opt.text = c.name; colSel.appendChild(opt); });
+            const list = document.getElementById('waPayeeList'); list.innerHTML = ''; document.getElementById('waPayeeSearch').value = ''; document.getElementById('waPayee').value = '';
             if(g.people.length === 0) list.innerHTML = '<p class="text-xs text-center text-slate-400 p-2">No people</p>';
-            else {
-                g.people.forEach(p => {
-                    const div = document.createElement('div');
-                    div.className = "p-2 rounded-lg hover:bg-slate-50 cursor-pointer flex items-center gap-2 payee-item";
-                    div.setAttribute('data-name', p.name.toLowerCase());
-                    div.onclick = () => selectPayee(p.name, div);
-                    div.innerHTML = `<div class="w-4 h-4 rounded-full border border-slate-300 ring flex items-center justify-center text-[10px] text-white"><i class="fas fa-check opacity-0"></i></div> <span class="text-sm text-slate-600 font-medium">${p.name}</span>`;
-                    list.appendChild(div);
-                });
-            }
+            else { g.people.forEach(p => { const div = document.createElement('div'); div.className = "p-2 rounded-lg hover:bg-slate-50 cursor-pointer flex items-center gap-2 payee-item"; div.setAttribute('data-name', p.name.toLowerCase()); div.onclick = () => selectPayee(p.name, div); div.innerHTML = `<div class="w-4 h-4 rounded-full border border-slate-300 ring flex items-center justify-center text-[10px] text-white"><i class="fas fa-check opacity-0"></i></div> <span class="text-sm text-slate-600 font-medium">${p.name}</span>`; list.appendChild(div); }); }
             document.getElementById('waGroupMessage').value = ''; selectWaCategory('pending'); document.getElementById('whatsappGroupModal').classList.remove('hidden');
         }
-        function selectPayee(name, el) {
-            document.getElementById('waPayee').value = name;
-            document.querySelectorAll('.payee-item .ring').forEach(r => { r.className = "w-4 h-4 rounded-full border border-slate-300 ring flex items-center justify-center text-[10px] text-white"; r.querySelector('i').classList.add('opacity-0'); });
-            const r = el.querySelector('.ring');
-            r.className = "w-4 h-4 rounded-full bg-green-500 border-green-500 ring flex items-center justify-center text-[10px] text-white"; r.querySelector('i').classList.remove('opacity-0');
-        }
+        function selectPayee(name, el) { document.getElementById('waPayee').value = name; document.querySelectorAll('.payee-item .ring').forEach(r => { r.className = "w-4 h-4 rounded-full border border-slate-300 ring flex items-center justify-center text-[10px] text-white"; r.querySelector('i').classList.add('opacity-0'); }); const r = el.querySelector('.ring'); r.className = "w-4 h-4 rounded-full bg-green-500 border-green-500 ring flex items-center justify-center text-[10px] text-white"; r.querySelector('i').classList.remove('opacity-0'); }
         function filterPayeeList() { const t = document.getElementById('waPayeeSearch').value.toLowerCase(); document.querySelectorAll('.payee-item').forEach(el => { el.style.display = el.getAttribute('data-name').includes(t) ? 'flex' : 'none'; }); }
-        function selectWaCategory(type) {
-            document.getElementById('waCategory').value = type;
-            const map = { 'pending': { id: 'cat-btn-pending', active: 'bg-yellow-50 border-yellow-400 text-yellow-700' }, 'empty': { id: 'cat-btn-empty', active: 'bg-slate-100 border-slate-400 text-slate-700' }, 'issue': { id: 'cat-btn-issue', active: 'bg-red-50 border-red-400 text-red-700' } };
-            Object.keys(map).forEach(k => { document.getElementById(map[k].id).className = "p-3 rounded-xl border-2 bg-white border-slate-200 text-slate-400 text-xs font-bold flex flex-col items-center gap-1 transition-transform active:scale-95"; });
-            const sel = map[type]; document.getElementById(sel.id).className = `p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center gap-1 transition-transform active:scale-95 ${sel.active}`;
-        }
+        function selectWaCategory(type) { document.getElementById('waCategory').value = type; const map = { 'pending': { id: 'cat-btn-pending', active: 'bg-yellow-50 border-yellow-400 text-yellow-700' }, 'empty': { id: 'cat-btn-empty', active: 'bg-slate-100 border-slate-400 text-slate-700' }, 'issue': { id: 'cat-btn-issue', active: 'bg-red-50 border-red-400 text-red-700' } }; Object.keys(map).forEach(k => { document.getElementById(map[k].id).className = "p-3 rounded-xl border-2 bg-white border-slate-200 text-slate-400 text-xs font-bold flex flex-col items-center gap-1 transition-transform active:scale-95"; }); const sel = map[type]; document.getElementById(sel.id).className = `p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center gap-1 transition-transform active:scale-95 ${sel.active}`; }
         function generateSmartMessage() {
-            const cat = document.getElementById('waCategory').value;
-            const payee = document.getElementById('waPayee').value;
-            const colId = document.getElementById('waColumn').value;
-            if(!payee) return alert("Select a Payee first");
+            const cat = document.getElementById('waCategory').value; const payee = document.getElementById('waPayee').value; const colId = document.getElementById('waColumn').value;
+            if(!payee) return alert("Select Payee");
             let targetStat = 0; if(cat === 'pending') targetStat = 2; else if(cat === 'issue') targetStat = 3;
             const g = getActiveGroup(); let names = [];
-            g.people.forEach(p => {
-                let match = false;
-                if(colId === 'all') { if(Object.values(p.months).includes(targetStat)) match = true; }
-                else { if(p.months[colId] === targetStat) match = true; }
-                if(match) names.push(p.name);
-            });
-            if(names.length === 0) return alert("No matching people found.");
+            g.people.forEach(p => { let match = false; if(colId === 'all') { if(Object.values(p.months).includes(targetStat)) match = true; } else { if(p.months[colId] === targetStat) match = true; } if(match) names.push(p.name); });
+            if(names.length === 0) return alert("No people found.");
             document.getElementById('waGroupMessage').value = `${names.join(", ")} send money to ${payee}`;
         }
         function sendGroupWhatsApp() { const msg = document.getElementById('waGroupMessage').value; if(!msg.trim()) return alert("Message empty"); window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank'); closeModal('whatsappGroupModal'); }
-        function sendPersonalWhatsApp() {
-            const d = document.getElementById('editDetails').value; const m = d.match(/[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}/);
-            if(m) { const ph = m[0].replace(/\D/g, ''); document.getElementById('waTargetText').textContent = "To: " + document.getElementById('editName').value; document.getElementById('waPersonalPhone').value = ph; document.getElementById('waPersonalModal').classList.remove('hidden'); } else alert("No phone number");
-        }
+        function sendPersonalWhatsApp() { const d = document.getElementById('editDetails').value; const m = d.match(/[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}/); if(m) { const ph = m[0].replace(/\D/g, ''); document.getElementById('waTargetText').textContent = "To: " + document.getElementById('editName').value; document.getElementById('waPersonalPhone').value = ph; document.getElementById('waPersonalModal').classList.remove('hidden'); } else alert("No phone number"); }
         function triggerPersonalWa() { const ph = document.getElementById('waPersonalPhone').value; const msg = document.getElementById('waPersonalMsg').value; window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`, '_blank'); closeModal('waPersonalModal'); }
 
-        // --- IMPORT/EXPORT ---
-        function exportAction(type) {
-            const g = getActiveGroup();
-            let csv = "Name,Details," + g.columns.map(c=>c.name).join(",") + "\n";
-            g.people.forEach(p => { const ms = v => v===1?"Done":v===2?"Pending":v===3?"Issue":""; let r = `"${p.name.replace(/"/g,'""')}","${p.details.replace(/"/g,'""')}"`; g.columns.forEach(c => r += `,${ms(p.months[c.id])}`); csv += r + "\n"; });
-            if(type==='email') window.location.href = `mailto:?subject=${encodeURIComponent(g.name)}&body=${encodeURIComponent(csv)}`;
-            else if(type==='clipboard') navigator.clipboard.writeText(csv).then(()=>alert("Copied!"));
-            else { const a = document.createElement("a"); a.href = encodeURI("data:text/csv;charset=utf-8," + csv); a.download = g.name + ".csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
-        }
-        function importCSV(input) {
-            if(input.files[0]) {
-                const r = new FileReader();
-                r.onload = e => {
-                    const txt = e.target.result; const lines = txt.trim().split(/\r?\n/); if(lines.length<2) return;
-                    const parse = l => { const res = []; let m, re = /(?:^|,)(\"(?:[^\"]+|\"\")*\"|[^,]*)/g; while(m=re.exec(l)) { let v = m[1]||m[0]; if(m[0].startsWith(',')) v=m[0].substring(1); res.push(v.startsWith('"')?v.slice(1,-1).replace(/""/g,'"'):v); } return res; };
-                    const h = parse(lines[0]); const g = getActiveGroup(); const map = [];
-                    for(let i=2; i<h.length; i++) { const c = g.columns.find(x=>x.name===h[i].trim()); if(c) map.push({idx:i, id:c.id}); else { const nid=crypto.randomUUID(); g.columns.push({id:nid, name:h[i].trim()}); map.push({idx:i, id:nid}); } }
-                    const stats = {"Done":1,"Pending":2,"Issue":3};
-                    for(let i=1; i<lines.length; i++) { const r = parse(lines[i]); if(r.length<2 || r[0]==='Name') continue; const nid = crypto.randomUUID(); const mo = {}; g.columns.forEach(c => mo[c.id] = 0); const p = { id: nid, name: r[0], details: r[1], months: mo }; map.forEach(m => { if(stats[r[m.idx]]) p.months[m.id] = stats[r[m.idx]]; }); g.people.push(p); }
-                    saveData(); renderTable();
-                }; r.readAsText(input.files[0]); input.value='';
-            }
-        }
-        let confirmCb = null;
-        function showConfirmModal(t,m,cb) { document.getElementById('confirmTitle').textContent=t; document.getElementById('confirmMessage').textContent=m; confirmCb=cb; document.getElementById('confirmModal').classList.remove('hidden'); }
-        function closeConfirmModal() { document.getElementById('confirmModal').classList.add('hidden'); }
-        document.getElementById('confirmBtn').onclick = () => { if(confirmCb) confirmCb(); closeConfirmModal(); };
-        function confirmClearAll() { showConfirmModal("Reset All", "Delete all data?", () => { localStorage.removeItem(STORAGE_KEY); loadData(); navTo('home'); }); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-        function filterTable() { renderTable(); }
-
-        // --- GROUPS MODAL ---
-        function openGroupModal(mode, id=null) {
-            const m = document.getElementById('groupModal');
-            document.getElementById('groupModalTitle').textContent = mode==='add' ? "Add Group" : "Edit Group";
-            document.getElementById('groupNameInput').value = mode==='add' ? "" : app.groups.find(g=>g.id===id).name;
-            document.getElementById('groupIdInput').value = mode==='add' ? "" : id;
-            document.getElementById('btnDeleteGroup').classList.toggle('hidden', mode==='add' || app.groups.length <= 1);
-            m.classList.remove('hidden');
-        }
-        function openGroupSettings() { openGroupModal('edit', getActiveGroup().id); }
-        function saveGroup() {
-            const name = document.getElementById('groupNameInput').value.trim(); const id = document.getElementById('groupIdInput').value;
-            if(!name) return;
-            if(id) { app.groups.find(g=>g.id===id).name = name; }
-            else { const nid=crypto.randomUUID(); app.groups.push({id:nid, name:name, columns:DEFAULT_COLS.map(n=>({id:crypto.randomUUID(), name:n})), people:[]}); app.activeGroupId=nid; }
-            saveData(); renderGroupsList(); closeModal('groupModal'); updateHeaderGroup();
-        }
+        // --- UTILS ---
+        function exportAction(type) { const g = getActiveGroup(); let csv = "Name,Details," + g.columns.map(c=>c.name).join(",") + "\n"; g.people.forEach(p => { const ms = v => v===1?"Done":v===2?"Pending":v===3?"Issue":""; let r = `"${p.name.replace(/"/g,'""')}","${p.details.replace(/"/g,'""')}"`; g.columns.forEach(c => r += `,${ms(p.months[c.id])}`); csv += r + "\n"; }); if(type==='email') window.location.href = `mailto:?subject=${encodeURIComponent(g.name)}&body=${encodeURIComponent(csv)}`; else if(type==='clipboard') navigator.clipboard.writeText(csv).then(()=>alert("Copied!")); else { const a = document.createElement("a"); a.href = encodeURI("data:text/csv;charset=utf-8," + csv); a.download = g.name + ".csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a); } }
+        function importCSV(input) { if(input.files[0]) { const r = new FileReader(); r.onload = e => { const txt = e.target.result; const lines = txt.trim().split(/\r?\n/); if(lines.length<2) return; const parse = l => { const res = []; let m, re = /(?:^|,)(\"(?:[^\"]+|\"\")*\"|[^,]*)/g; while(m=re.exec(l)) { let v = m[1]||m[0]; if(m[0].startsWith(',')) v=m[0].substring(1); res.push(v.startsWith('"')?v.slice(1,-1).replace(/""/g,'"'):v); } return res; }; const h = parse(lines[0]); const g = getActiveGroup(); const map = []; for(let i=2; i<h.length; i++) { const c = g.columns.find(x=>x.name===h[i].trim()); if(c) map.push({idx:i, id:c.id}); else { const nid=crypto.randomUUID(); g.columns.push({id:nid, name:h[i].trim()}); map.push({idx:i, id:nid}); } } const stats = {"Done":1,"Pending":2,"Issue":3}; for(let i=1; i<lines.length; i++) { const r = parse(lines[i]); if(r.length<2 || r[0]==='Name') continue; const nid = crypto.randomUUID(); const mo = {}; g.columns.forEach(c => mo[c.id] = 0); const p = { id: nid, name: r[0], details: r[1], months: mo }; map.forEach(m => { if(stats[r[m.idx]]) p.months[m.id] = stats[r[m.idx]]; }); g.people.push(p); } saveData(); renderTable(); }; r.readAsText(input.files[0]); input.value=''; } }
+        let confirmCb = null; function showConfirmModal(t,m,cb) { document.getElementById('confirmTitle').textContent=t; document.getElementById('confirmMessage').textContent=m; confirmCb=cb; document.getElementById('confirmModal').classList.remove('hidden'); } function closeConfirmModal() { document.getElementById('confirmModal').classList.add('hidden'); } document.getElementById('confirmBtn').onclick = () => { if(confirmCb) confirmCb(); closeConfirmModal(); }; function confirmClearAll() { showConfirmModal("Reset All", "Delete all data?", () => { localStorage.removeItem(STORAGE_KEY); loadData(); navTo('home'); }); } function closeModal(id) { document.getElementById(id).classList.add('hidden'); } function filterTable() { renderTable(); }
     </script>
 </body>
 </html>
