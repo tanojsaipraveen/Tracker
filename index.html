@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Monthly Tracker (Admin Fix)</title>
+    <title>Monthly Tracker (Debug Sync)</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ffffff">
@@ -38,12 +38,12 @@
 
     <input type="file" id="importInput" accept=".csv" class="hidden" onchange="importCSV(this)">
 
+    <!-- PAGE 1: HOME -->
     <section id="page-home" class="page-section active">
         <header class="bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center shadow-sm shrink-0 z-30">
             <div class="flex flex-col cursor-pointer" onclick="toggleGroupDropdown()">
                 <div class="flex items-center gap-2">
                     <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Group</span>
-                    <!-- Sync Status Dot -->
                     <span id="syncStatus" class="w-2.5 h-2.5 rounded-full bg-slate-300 border border-white shadow-sm transition-colors duration-300"></span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -151,6 +151,7 @@
         </div>
     </div>
 
+    <!-- Edit Person, WA Group, Personal WA, Confirm, Group Modals (Same as previous) -->
     <div id="editModal" class="fixed inset-0 bg-black/50 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
             <div class="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center"><h3 id="modalTitle" class="font-bold text-lg text-slate-800">Person</h3><button onclick="closeModal('editModal')" class="w-8 h-8 rounded-full bg-white text-slate-400 hover:text-slate-600 flex items-center justify-center shadow-sm"><i class="fas fa-times"></i></button></div>
@@ -194,6 +195,7 @@
     </div>
 
     <script>
+        // --- APP STATE ---
         const STORAGE_KEY = 'monthly_tracker_v9';
         const GH_CONFIG_KEY = 'tracker_gh_config';
         const DEFAULT_COLS = ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];
@@ -269,7 +271,7 @@
                     }
                     updateHeaderGroup(); renderTable(); renderGroupsList(); renderColumnManager();
                 } else if (res.status === 404) {
-                    console.log("File not found. Save will create it.");
+                    // Repo is empty. We should just use local data or reset.
                     if(!localStorage.getItem(STORAGE_KEY)) resetData();
                 }
             } catch(e) { console.log(e); loadData(); }
@@ -281,6 +283,7 @@
 
             isSyncing = true; updateSyncStatus();
             try {
+                // 1. GET latest SHA (critical to avoid conflict)
                 const headers = { 'Authorization': `token ${ghConfig.token}`, 'Accept': 'application/vnd.github.v3+json', 'cache-control': 'no-cache' };
                 const getRes = await fetch(`https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/data.json?t=${Date.now()}`, { headers });
                 
@@ -288,6 +291,13 @@
                 if (getRes.ok) {
                     const json = await getRes.json();
                     currentSha = json.sha;
+                } else if (getRes.status === 404) {
+                    // File doesn't exist, so sha should be null to create it.
+                    currentSha = null;
+                } else if (getRes.status === 409) {
+                    // This means the repo is empty and we can't use contents API yet, likely need init.
+                    // Or standard conflict.
+                    throw new Error("Repository is empty or Conflict. Initialize repo with README first.");
                 }
 
                 const content = btoa(unescape(encodeURIComponent(JSON.stringify(app))));
@@ -304,10 +314,20 @@
                     const json = await res.json();
                     ghConfig.sha = json.content.sha;
                     localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
-                } else if(res.status === 409) {
-                    await loadFromGitHub(); await saveToGitHub(); 
+                } else {
+                    const errText = await res.text();
+                    console.error("GitHub Error:", errText);
+                    if (res.status === 409) {
+                         alert("Sync Error: Conflict. Refreshing data...");
+                         await loadFromGitHub();
+                    } else {
+                        alert("Sync Error: " + res.status + ". Check permissions/repo name.");
+                    }
                 }
-            } catch(e) { console.error(e); alert("Sync Error"); }
+            } catch(e) { 
+                console.error(e); 
+                alert("Sync Error: " + e.message); 
+            }
             finally { isSyncing = false; updateSyncStatus(); }
         }
 
@@ -317,9 +337,16 @@
             const token = document.getElementById('ghToken').value;
             const headers = { 'Accept': 'application/vnd.github.v3+json' };
             if(token) headers['Authorization'] = `token ${token}`;
+            
             try {
+                // Check repo existence
                 const res = await fetch(`https://api.github.com/repos/${user}/${repo}`, { headers });
-                if(res.ok) alert("Connection Successful!"); else alert("Connection Failed.");
+                if(res.ok) {
+                    const data = await res.json();
+                    if (data.size === 0) alert("Connected! But Repo is EMPTY. Please create a README file in GitHub first.");
+                    else alert("Connection Successful!");
+                }
+                else alert("Connection Failed. Repo not found.");
             } catch(e) { alert("Network Error"); }
         }
 
@@ -336,31 +363,168 @@
             const user = document.getElementById('ghUser').value.trim();
             const repo = document.getElementById('ghRepo').value.trim();
             const token = document.getElementById('ghToken').value.trim();
+            
             if(user && repo) {
                 const isReadOnly = (token === "");
                 ghConfig = { user, repo, token, sha: null, readOnly: isReadOnly };
                 localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
                 closeModal('githubModal');
                 loadFromGitHub();
-            } else alert("Required fields missing");
+            } else alert("Username and Repo required");
         }
 
-        function navTo(pageId) { app.currentPage = pageId; document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active')); document.getElementById(`page-${pageId}`).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active')); document.getElementById(`nav-${pageId}`).classList.add('active'); if(pageId === 'home') renderTable(); if(pageId === 'groups') renderGroupsList(); if(pageId === 'columns') renderColumnManager(); }
-        function loadData() { const stored = localStorage.getItem(STORAGE_KEY); if (stored) { app = JSON.parse(stored); if (!app.groups || app.groups.length === 0) resetData(); else if (!app.groups.find(g => g.id === app.activeGroupId)) app.activeGroupId = app.groups[0].id; } else resetData(); updateHeaderGroup(); }
-        function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(app)); updateHeaderGroup(); saveToGitHub(); }
-        function resetData() { const defId = crypto.randomUUID(); app.groups = [{ id: defId, name: "Default Group", columns: DEFAULT_COLS.map(n => ({ id: crypto.randomUUID(), name: n })), people: [] }]; app.activeGroupId = defId; saveData(); }
+        // --- NAVIGATION ---
+        function navTo(pageId) {
+            app.currentPage = pageId;
+            document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`page-${pageId}`).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(`nav-${pageId}`).classList.add('active');
+            if(pageId === 'home') renderTable();
+            if(pageId === 'groups') renderGroupsList();
+            if(pageId === 'columns') renderColumnManager();
+        }
+
+        // --- DATA MANAGEMENT ---
+        function loadData() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                app = JSON.parse(stored);
+                if (!app.groups || app.groups.length === 0) resetData();
+                else if (!app.groups.find(g => g.id === app.activeGroupId)) app.activeGroupId = app.groups[0].id;
+            } else resetData();
+            updateHeaderGroup();
+        }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(app));
+            updateHeaderGroup();
+            saveToGitHub();
+        }
+
+        function resetData() {
+            const defId = crypto.randomUUID();
+            app.groups = [{ id: defId, name: "Default Group", columns: DEFAULT_COLS.map(n => ({ id: crypto.randomUUID(), name: n })), people: [] }];
+            app.activeGroupId = defId;
+            saveData();
+        }
+
         function getActiveGroup() { return app.groups.find(g => g.id === app.activeGroupId); }
         function updateHeaderGroup() { const g = getActiveGroup(); if(g) document.getElementById('headerGroupName').textContent = g.name; }
-        function toggleGroupDropdown() { const dd = document.getElementById('groupDropdown'); if(dd.classList.contains('hidden')) { dd.innerHTML = ''; app.groups.forEach(g => { const div = document.createElement('div'); div.className = `p-2 rounded-lg text-sm font-medium cursor-pointer hover:bg-slate-50 ${g.id === app.activeGroupId ? 'bg-blue-50 text-blue-600' : 'text-slate-600'}`; div.textContent = g.name; div.onclick = () => { app.activeGroupId = g.id; saveData(); navTo('home'); dd.classList.add('hidden'); }; dd.appendChild(div); }); dd.classList.remove('hidden'); } else dd.classList.add('hidden'); }
-        function renderTable() { const g = getActiveGroup(); const tbody = document.getElementById('trackerBody'); const thead = document.getElementById('tableHeaderRow'); const empty = document.getElementById('emptyState'); const filter = document.getElementById('searchInput').value.toLowerCase(); if(!g) return; thead.innerHTML = `<th class="p-3 border-b border-r border-slate-200 sticky-col min-w-[140px] bg-slate-50">Name</th>`; g.columns.forEach(c => { thead.innerHTML += `<th class="p-3 border-b border-slate-200 text-center min-w-[60px]">${c.name}</th>`; }); thead.innerHTML += `<th class="p-3 border-b border-l border-slate-200 text-center w-[50px] edit-control"><i class="fas fa-cog"></i></th>`; tbody.innerHTML = ''; let count = 0; g.people.forEach(p => { if(filter && !p.name.toLowerCase().includes(filter)) return; count++; const tr = document.createElement('tr'); tr.className = "hover:bg-slate-50"; let html = `<td class="p-2 border-b border-r border-slate-100 sticky-col bg-white"><div class="flex justify-between items-center"><div onclick="openEditModal('${p.id}')"><div class="font-bold text-slate-700 truncate max-w-[100px]">${p.name}</div><div class="text-[10px] text-slate-400 truncate max-w-[100px]">${p.details || '-'}</div></div><button onclick="openEditModal('${p.id}')" class="text-slate-300 hover:text-blue-500 edit-control"><i class="fas fa-pencil-alt text-xs"></i></button></div></td>`; g.columns.forEach(c => { const val = p.months[c.id] || 0; const icons = ['','<i class="fas fa-check"></i>','<i class="fas fa-clock"></i>','<i class="fas fa-times"></i>']; html += `<td class="p-1 border-b border-slate-100 text-center"><button onclick="toggleStatus('${p.id}','${c.id}')" class="w-9 h-9 rounded-lg text-xs flex items-center justify-center mx-auto transition-transform active:scale-95 status-${val} status-btn">${icons[val]}</button></td>`; }); html += `<td class="p-2 border-b border-l border-slate-100 text-center edit-control"><button onclick="deletePerson('${p.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-trash"></i></button></td>`; tr.innerHTML = html; tbody.appendChild(tr); }); empty.classList.toggle('hidden', count > 0); }
-        function toggleStatus(pid, cid) { if(ghConfig.readOnly) return; const p = getActiveGroup().people.find(x => x.id === pid); if(p) { p.months[cid] = ((p.months[cid] || 0) + 1) % 4; saveData(); renderTable(); } }
-        function renderGroupsList() { const list = document.getElementById('groupsList'); list.innerHTML = ''; app.groups.forEach(g => { const isActive = g.id === app.activeGroupId; const div = document.createElement('div'); div.className = `p-4 rounded-xl border flex justify-between items-center ${isActive ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200'}`; div.innerHTML = `<div onclick="switchGroup('${g.id}')" class="flex-1 cursor-pointer"><h3 class="font-bold text-sm ${isActive ? 'text-blue-700' : 'text-slate-700'}">${g.name}</h3><p class="text-[10px] text-slate-400">${g.people.length} People • ${g.columns.length} Cols</p></div><div class="flex gap-2 edit-control"><button onclick="renameGroup('${g.id}')" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-blue-500 flex items-center justify-center"><i class="fas fa-edit text-xs"></i></button>${app.groups.length > 1 ? `<button onclick="deleteGroup('${g.id}')" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 flex items-center justify-center"><i class="fas fa-trash text-xs"></i></button>` : ''}</div>`; list.appendChild(div); }); }
-        function createGroup() { if(ghConfig.readOnly) return; const name = document.getElementById('newGroupInput').value.trim(); if(!name) return; const newId = crypto.randomUUID(); app.groups.push({ id: newId, name: name, columns: DEFAULT_COLS.map(n => ({ id: crypto.randomUUID(), name: n })), people: [] }); document.getElementById('newGroupInput').value = ''; app.activeGroupId = newId; saveData(); renderGroupsList(); }
+
+        function toggleGroupDropdown() {
+            const dd = document.getElementById('groupDropdown');
+            if(dd.classList.contains('hidden')) {
+                dd.innerHTML = '';
+                app.groups.forEach(g => {
+                    const div = document.createElement('div');
+                    div.className = `p-2 rounded-lg text-sm font-medium cursor-pointer hover:bg-slate-50 ${g.id === app.activeGroupId ? 'bg-blue-50 text-blue-600' : 'text-slate-600'}`;
+                    div.textContent = g.name;
+                    div.onclick = () => { app.activeGroupId = g.id; saveData(); navTo('home'); dd.classList.add('hidden'); };
+                    dd.appendChild(div);
+                });
+                dd.classList.remove('hidden');
+            } else dd.classList.add('hidden');
+        }
+
+        // --- RENDER TABLE ---
+        function renderTable() {
+            const g = getActiveGroup();
+            const tbody = document.getElementById('trackerBody');
+            const thead = document.getElementById('tableHeaderRow');
+            const empty = document.getElementById('emptyState');
+            const filter = document.getElementById('searchInput').value.toLowerCase();
+
+            if(!g) return;
+
+            thead.innerHTML = `<th class="p-3 border-b border-r border-slate-200 sticky-col min-w-[140px] bg-slate-50">Name</th>`;
+            g.columns.forEach(c => { thead.innerHTML += `<th class="p-3 border-b border-slate-200 text-center min-w-[60px]">${c.name}</th>`; });
+            thead.innerHTML += `<th class="p-3 border-b border-l border-slate-200 text-center w-[50px] edit-control"><i class="fas fa-cog"></i></th>`;
+
+            tbody.innerHTML = '';
+            let count = 0;
+            g.people.forEach(p => {
+                if(filter && !p.name.toLowerCase().includes(filter)) return;
+                count++;
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50";
+                let html = `<td class="p-2 border-b border-r border-slate-100 sticky-col bg-white"><div class="flex justify-between items-center"><div onclick="openEditModal('${p.id}')"><div class="font-bold text-slate-700 truncate max-w-[100px]">${p.name}</div><div class="text-[10px] text-slate-400 truncate max-w-[100px]">${p.details || '-'}</div></div><button onclick="openEditModal('${p.id}')" class="text-slate-300 hover:text-blue-500 edit-control"><i class="fas fa-pencil-alt text-xs"></i></button></div></td>`;
+                g.columns.forEach(c => {
+                    const val = p.months[c.id] || 0;
+                    const icons = ['','<i class="fas fa-check"></i>','<i class="fas fa-clock"></i>','<i class="fas fa-times"></i>'];
+                    html += `<td class="p-1 border-b border-slate-100 text-center"><button onclick="toggleStatus('${p.id}','${c.id}')" class="w-9 h-9 rounded-lg text-xs flex items-center justify-center mx-auto transition-transform active:scale-95 status-${val} status-btn">${icons[val]}</button></td>`;
+                });
+                html += `<td class="p-2 border-b border-l border-slate-100 text-center edit-control"><button onclick="deletePerson('${p.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-trash"></i></button></td>`;
+                tr.innerHTML = html;
+                tbody.appendChild(tr);
+            });
+            empty.classList.toggle('hidden', count > 0);
+        }
+
+        function toggleStatus(pid, cid) {
+            if(ghConfig.readOnly) return;
+            const p = getActiveGroup().people.find(x => x.id === pid);
+            if(p) { p.months[cid] = ((p.months[cid] || 0) + 1) % 4; saveData(); renderTable(); }
+        }
+
+        // --- GROUPS ---
+        function renderGroupsList() {
+            const list = document.getElementById('groupsList');
+            list.innerHTML = '';
+            app.groups.forEach(g => {
+                const isActive = g.id === app.activeGroupId;
+                const div = document.createElement('div');
+                div.className = `p-4 rounded-xl border flex justify-between items-center ${isActive ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200'}`;
+                div.innerHTML = `<div onclick="switchGroup('${g.id}')" class="flex-1 cursor-pointer"><h3 class="font-bold text-sm ${isActive ? 'text-blue-700' : 'text-slate-700'}">${g.name}</h3><p class="text-[10px] text-slate-400">${g.people.length} People • ${g.columns.length} Cols</p></div><div class="flex gap-2 edit-control"><button onclick="renameGroup('${g.id}')" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-blue-500 flex items-center justify-center"><i class="fas fa-edit text-xs"></i></button>${app.groups.length > 1 ? `<button onclick="deleteGroup('${g.id}')" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 flex items-center justify-center"><i class="fas fa-trash text-xs"></i></button>` : ''}</div>`;
+                list.appendChild(div);
+            });
+        }
+        function createGroup() {
+            if(ghConfig.readOnly) return;
+            const name = document.getElementById('newGroupInput').value.trim();
+            if(!name) return;
+            const newId = crypto.randomUUID();
+            app.groups.push({ id: newId, name: name, columns: DEFAULT_COLS.map(n => ({ id: crypto.randomUUID(), name: n })), people: [] });
+            document.getElementById('newGroupInput').value = '';
+            app.activeGroupId = newId; saveData(); renderGroupsList();
+        }
         function switchGroup(id) { app.activeGroupId = id; saveData(); renderGroupsList(); }
         function renameGroup(id) { openGroupModal('edit', id); }
-        function deleteGroup(id) { if(ghConfig.readOnly) return; const gid = id || document.getElementById('groupIdInput').value; const g = app.groups.find(x => x.id === gid); showConfirmModal("Delete Group", `Delete "${g.name}"?`, () => { app.groups = app.groups.filter(x => x.id !== gid); if(app.activeGroupId === gid) app.activeGroupId = app.groups[0].id; saveData(); renderGroupsList(); closeModal('groupModal'); }); }
-        function renderColumnManager() { const g = getActiveGroup(); if(!g) return; const list = document.getElementById('columnList'); list.innerHTML = ''; g.columns.forEach((c, i) => { const div = document.createElement('div'); div.className = "flex items-center gap-2 bg-white p-3 border border-slate-200 rounded-xl mb-2 shadow-sm"; div.innerHTML = `<span class="text-slate-300 cursor-move"><i class="fas fa-grip-vertical"></i></span><input type="text" value="${c.name}" onchange="updateColName(${i}, this.value)" class="flex-1 text-sm font-medium text-slate-700 bg-transparent outline-none"><button onclick="moveCol(${i}, -1)" ${i===0?'disabled':''} class="text-slate-400 hover:text-blue-500 disabled:opacity-30"><i class="fas fa-arrow-up"></i></button><button onclick="moveCol(${i}, 1)" ${i===g.columns.length-1?'disabled':''} class="text-slate-400 hover:text-blue-500 disabled:opacity-30"><i class="fas fa-arrow-down"></i></button><button onclick="delCol(${i})" class="text-slate-300 hover:text-red-500 ml-2"><i class="fas fa-trash"></i></button>`; list.appendChild(div); }); }
-        function addColumn() { if(ghConfig.readOnly) return; const name = document.getElementById('newColumnName').value.trim(); if(!name) return; const g = getActiveGroup(); const cid = crypto.randomUUID(); g.columns.push({ id: cid, name: name }); g.people.forEach(p => p.months[cid] = 0); document.getElementById('newColumnName').value = ''; saveData(); renderColumnManager(); }
+        function deleteGroup(id) {
+            if(ghConfig.readOnly) return;
+            const gid = id || document.getElementById('groupIdInput').value;
+            const g = app.groups.find(x => x.id === gid);
+            showConfirmModal("Delete Group", `Delete "${g.name}"?`, () => {
+                app.groups = app.groups.filter(x => x.id !== gid);
+                if(app.activeGroupId === gid) app.activeGroupId = app.groups[0].id;
+                saveData(); renderGroupsList(); closeModal('groupModal');
+            });
+        }
+
+        // --- COLUMNS ---
+        function renderColumnManager() {
+            const g = getActiveGroup();
+            if(!g) return;
+            const list = document.getElementById('columnList');
+            list.innerHTML = '';
+            g.columns.forEach((c, i) => {
+                const div = document.createElement('div');
+                div.className = "flex items-center gap-2 bg-white p-3 border border-slate-200 rounded-xl mb-2 shadow-sm";
+                div.innerHTML = `<span class="text-slate-300 cursor-move"><i class="fas fa-grip-vertical"></i></span><input type="text" value="${c.name}" onchange="updateColName(${i}, this.value)" class="flex-1 text-sm font-medium text-slate-700 bg-transparent outline-none"><button onclick="moveCol(${i}, -1)" ${i===0?'disabled':''} class="text-slate-400 hover:text-blue-500 disabled:opacity-30"><i class="fas fa-arrow-up"></i></button><button onclick="moveCol(${i}, 1)" ${i===g.columns.length-1?'disabled':''} class="text-slate-400 hover:text-blue-500 disabled:opacity-30"><i class="fas fa-arrow-down"></i></button><button onclick="delCol(${i})" class="text-slate-300 hover:text-red-500 ml-2"><i class="fas fa-trash"></i></button>`;
+                list.appendChild(div);
+            });
+        }
+        function addColumn() {
+            if(ghConfig.readOnly) return;
+            const name = document.getElementById('newColumnName').value.trim();
+            if(!name) return;
+            const g = getActiveGroup();
+            const cid = crypto.randomUUID();
+            g.columns.push({ id: cid, name: name });
+            g.people.forEach(p => p.months[cid] = 0);
+            document.getElementById('newColumnName').value = '';
+            saveData(); renderColumnManager();
+        }
         function updateColName(i, val) { if(ghConfig.readOnly) return; getActiveGroup().columns[i].name = val; saveData(); }
         function moveCol(i, dir) { if(ghConfig.readOnly) return; const g = getActiveGroup(); [g.columns[i], g.columns[i+dir]] = [g.columns[i+dir], g.columns[i]]; saveData(); renderColumnManager(); }
         function delCol(i) { if(ghConfig.readOnly) return; showConfirmModal("Delete Column", "Are you sure?", () => { getActiveGroup().columns.splice(i, 1); saveData(); renderColumnManager(); }); }
