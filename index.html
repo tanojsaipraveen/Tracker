@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Monthly Tracker (Fixed Sync)</title>
+    <title>Monthly Tracker (Admin Fix)</title>
     
-    <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ffffff">
     <meta name="mobile-web-app-capable" content="yes">
@@ -31,8 +30,6 @@
         .nav-btn.active { color: #2563eb; }
         .nav-btn.active .icon-container { background-color: #eff6ff; }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
-        
-        /* Read Only Utils */
         body.read-only .edit-control { display: none !important; }
         body.read-only .status-btn { pointer-events: none; opacity: 0.9; }
     </style>
@@ -41,13 +38,13 @@
 
     <input type="file" id="importInput" accept=".csv" class="hidden" onchange="importCSV(this)">
 
-    <!-- PAGE 1: HOME -->
     <section id="page-home" class="page-section active">
         <header class="bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center shadow-sm shrink-0 z-30">
             <div class="flex flex-col cursor-pointer" onclick="toggleGroupDropdown()">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center gap-2">
                     <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Group</span>
-                    <span id="syncStatus" class="w-2 h-2 rounded-full bg-slate-300" title="Offline"></span>
+                    <!-- Sync Status Dot -->
+                    <span id="syncStatus" class="w-2.5 h-2.5 rounded-full bg-slate-300 border border-white shadow-sm transition-colors duration-300"></span>
                 </div>
                 <div class="flex items-center gap-2">
                     <h1 id="headerGroupName" class="text-lg font-bold text-slate-800 truncate max-w-[150px]">Loading...</h1>
@@ -65,9 +62,7 @@
             <div class="relative"><i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i><input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search names..." class="w-full pl-9 p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"></div>
         </div>
         <div class="flex-1 overflow-auto custom-scroll relative bg-white pb-24">
-            <div onclick="loadFromGitHub()" id="refreshBtn" class="text-center text-xs text-slate-400 py-2 cursor-pointer active:text-blue-500 bg-slate-50 border-b border-slate-100">
-                <i class="fas fa-sync-alt mr-1"></i> Tap to refresh data
-            </div>
+            <div onclick="loadFromGitHub()" id="refreshBtn" class="text-center text-xs text-slate-400 py-2 cursor-pointer active:text-blue-500 bg-slate-50 border-b border-slate-100 transition-colors"><i class="fas fa-sync-alt mr-1"></i> Tap to refresh data</div>
             <table class="w-full text-left border-collapse min-w-max">
                 <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-bold sticky top-0 z-20 shadow-sm"><tr id="tableHeaderRow"></tr></thead>
                 <tbody id="trackerBody" class="text-sm"></tbody>
@@ -110,17 +105,13 @@
     <section id="page-tools" class="page-section">
         <header class="bg-white border-b border-slate-200 px-4 py-4 shadow-sm shrink-0"><h1 class="text-xl font-bold text-slate-800">Tools</h1><p class="text-xs text-slate-500">Settings & Backup</p></header>
         <div class="p-4 space-y-4 flex-1 overflow-y-auto pb-24">
-            
             <div class="bg-slate-800 text-white rounded-xl p-5 shadow-lg">
                 <div class="flex items-center gap-3 mb-3">
                     <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"><i class="fas fa-user-shield text-xl"></i></div>
                     <div><h3 class="font-bold">Admin Settings</h3><p id="ghStatusText" class="text-xs opacity-60">Viewer Mode (Default)</p></div>
                 </div>
-                <button onclick="openGitHubModal()" class="w-full py-2 bg-white text-slate-900 rounded-lg text-sm font-bold shadow-sm flex items-center justify-center gap-2">
-                    <i class="fas fa-key"></i> Admin Login / Settings
-                </button>
+                <button onclick="openGitHubModal()" class="w-full py-2 bg-white text-slate-900 rounded-lg text-sm font-bold shadow-sm flex items-center justify-center gap-2"><i class="fas fa-key"></i> Admin Login / Settings</button>
             </div>
-
             <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                 <div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><i class="fas fa-file-export"></i></div><div><h3 class="font-bold text-slate-800">Export Data</h3><p class="text-xs text-slate-500">Save current group</p></div></div>
                 <div class="grid grid-cols-2 gap-2">
@@ -129,68 +120,52 @@
                     <button onclick="exportAction('download')" class="col-span-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium shadow-sm">Download File</button>
                 </div>
             </div>
+            <div class="edit-control bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                <div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="fas fa-file-import"></i></div><div><h3 class="font-bold text-slate-800">Import Data</h3><p class="text-xs text-slate-500">Load CSV file</p></div></div>
+                <button onclick="document.getElementById('importInput').click()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm">Select CSV</button>
+            </div>
+            <div class="edit-control bg-white border border-red-100 rounded-xl p-5 shadow-sm mt-8">
+                <h3 class="font-bold text-red-600 mb-1">Reset Data</h3><button onclick="confirmClearAll()" class="w-full py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium">Delete Everything</button>
+            </div>
         </div>
     </section>
 
     <!-- NAV BAR -->
     <nav class="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 flex justify-around items-center px-2 py-2 pb-safe z-[50] h-[65px] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <button onclick="navTo('home')" class="nav-btn active flex-1 flex flex-col items-center gap-1 p-1 text-slate-400 hover:text-blue-500 transition" id="nav-home">
-            <div class="icon-container w-10 h-7 rounded-2xl flex items-center justify-center transition-colors"><i class="fas fa-table-list text-lg"></i></div><span class="text-[10px] font-medium">Tracker</span>
-        </button>
-        <button onclick="navTo('groups')" class="nav-btn flex-1 flex flex-col items-center gap-1 p-1 text-slate-400 hover:text-blue-500 transition" id="nav-groups">
-            <div class="icon-container w-10 h-7 rounded-2xl flex items-center justify-center transition-colors"><i class="fas fa-layer-group text-lg"></i></div><span class="text-[10px] font-medium">Groups</span>
-        </button>
-        <button onclick="navTo('columns')" class="nav-btn flex-1 flex flex-col items-center gap-1 p-1 text-slate-400 hover:text-blue-500 transition" id="nav-columns">
-            <div class="icon-container w-10 h-7 rounded-2xl flex items-center justify-center transition-colors"><i class="fas fa-columns text-lg"></i></div><span class="text-[10px] font-medium">Columns</span>
-        </button>
-        <button onclick="navTo('tools')" class="nav-btn flex-1 flex flex-col items-center gap-1 p-1 text-slate-400 hover:text-blue-500 transition" id="nav-tools">
-            <div class="icon-container w-10 h-7 rounded-2xl flex items-center justify-center transition-colors"><i class="fas fa-toolbox text-lg"></i></div><span class="text-[10px] font-medium">Tools</span>
-        </button>
+        <button onclick="navTo('home')" class="nav-btn active flex-1 flex flex-col items-center gap-1 p-1 text-slate-400 hover:text-blue-500 transition" id="nav-home"><div class="icon-container w-10 h-7 rounded-2xl flex items-center justify-center transition-colors"><i class="fas fa-table-list text-lg"></i></div><span class="text-[10px] font-medium">Tracker</span></button>
+        <button onclick="navTo('groups')" class="nav-btn flex-1 flex flex-col items-center gap-1 p-1 text-slate-400 hover:text-blue-500 transition" id="nav-groups"><div class="icon-container w-10 h-7 rounded-2xl flex items-center justify-center transition-colors"><i class="fas fa-layer-group text-lg"></i></div><span class="text-[10px] font-medium">Groups</span></button>
+        <button onclick="navTo('columns')" class="nav-btn flex-1 flex flex-col items-center gap-1 p-1 text-slate-400 hover:text-blue-500 transition" id="nav-columns"><div class="icon-container w-10 h-7 rounded-2xl flex items-center justify-center transition-colors"><i class="fas fa-columns text-lg"></i></div><span class="text-[10px] font-medium">Columns</span></button>
+        <button onclick="navTo('tools')" class="nav-btn flex-1 flex flex-col items-center gap-1 p-1 text-slate-400 hover:text-blue-500 transition" id="nav-tools"><div class="icon-container w-10 h-7 rounded-2xl flex items-center justify-center transition-colors"><i class="fas fa-toolbox text-lg"></i></div><span class="text-[10px] font-medium">Tools</span></button>
     </nav>
 
     <!-- GitHub Config Modal -->
     <div id="githubModal" class="fixed inset-0 bg-black/50 z-[120] hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
-            <div class="bg-slate-900 text-white p-4 border-b border-slate-800 flex justify-between items-center">
-                <div class="flex items-center gap-2"><i class="fab fa-github text-xl"></i><h3 class="font-bold text-lg">Cloud Settings</h3></div>
-                <button onclick="closeModal('githubModal')" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
-            </div>
+            <div class="bg-slate-900 text-white p-4 border-b border-slate-800 flex justify-between items-center"><div class="flex items-center gap-2"><i class="fab fa-github text-xl"></i><h3 class="font-bold text-lg">Cloud Settings</h3></div><button onclick="closeModal('githubModal')" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button></div>
             <div class="p-5 space-y-3">
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Username</label><input type="text" id="ghUser" class="w-full p-2 bg-slate-50 border rounded-lg text-sm" value="tanojsaipraveen"></div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Repository Name</label><input type="text" id="ghRepo" class="w-full p-2 bg-slate-50 border rounded-lg text-sm" value="Tracker"></div>
-                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Admin Token (Optional)</label><input type="password" id="ghToken" placeholder="Paste GitHub Token to Edit" class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
+                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Admin Token</label><input type="password" id="ghToken" placeholder="Paste GitHub Token to Edit" class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
                 <div class="flex gap-2"><button onclick="testConnection()" class="flex-1 py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold border border-blue-200">Test Connection</button><button onclick="saveGithubConfig()" class="flex-1 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold shadow">Save & Connect</button></div>
             </div>
         </div>
     </div>
 
-    <!-- Edit Person, WA Group, Personal WA, Confirm, Group Modals (Same as previous) -->
-    <!-- Edit Person -->
     <div id="editModal" class="fixed inset-0 bg-black/50 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
-            <div class="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center">
-                <h3 id="modalTitle" class="font-bold text-lg text-slate-800">Person</h3>
-                <button onclick="closeModal('editModal')" class="w-8 h-8 rounded-full bg-white text-slate-400 hover:text-slate-600 flex items-center justify-center shadow-sm"><i class="fas fa-times"></i></button>
-            </div>
+            <div class="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center"><h3 id="modalTitle" class="font-bold text-lg text-slate-800">Person</h3><button onclick="closeModal('editModal')" class="w-8 h-8 rounded-full bg-white text-slate-400 hover:text-slate-600 flex items-center justify-center shadow-sm"><i class="fas fa-times"></i></button></div>
             <div class="p-5 space-y-4">
                 <input type="hidden" id="editId">
                 <div><label class="block text-xs font-bold text-slate-400 uppercase mb-1">Name</label><input type="text" id="editName" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"></div>
                 <div><label class="block text-xs font-bold text-slate-400 uppercase mb-1">Details</label><textarea id="editDetails" rows="3" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"></textarea></div>
             </div>
-            <div class="p-4 bg-white border-t border-slate-200 flex justify-between items-center">
-                <button onclick="sendPersonalWhatsApp()" class="text-green-600 hover:bg-green-50 px-3 py-2 rounded-lg transition flex items-center gap-2 text-sm font-bold border border-transparent hover:border-green-100"><i class="fab fa-whatsapp text-xl"></i> Message</button>
-                <button onclick="saveDataFromModal()" class="edit-control px-6 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-200 font-bold text-sm">Save</button>
-            </div>
+            <div class="p-4 bg-white border-t border-slate-200 flex justify-between items-center"><button onclick="sendPersonalWhatsApp()" class="text-green-600 hover:bg-green-50 px-3 py-2 rounded-lg transition flex items-center gap-2 text-sm font-bold border border-transparent hover:border-green-100"><i class="fab fa-whatsapp text-xl"></i> Message</button><button onclick="saveDataFromModal()" class="edit-control px-6 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-200 font-bold text-sm">Save</button></div>
         </div>
     </div>
 
-    <!-- WhatsApp Group -->
     <div id="whatsappGroupModal" class="fixed inset-0 bg-black/50 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100 flex flex-col max-h-[90vh]">
-            <div class="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center shrink-0">
-                <div class="flex items-center gap-2"><i class="fab fa-whatsapp text-green-600 text-xl"></i><h3 class="font-bold text-lg text-slate-800">Group Message</h3></div>
-                <button onclick="closeModal('whatsappGroupModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
-            </div>
+            <div class="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center shrink-0"><div class="flex items-center gap-2"><i class="fab fa-whatsapp text-green-600 text-xl"></i><h3 class="font-bold text-lg text-slate-800">Group Message</h3></div><button onclick="closeModal('whatsappGroupModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button></div>
             <div class="p-6 space-y-5 overflow-y-auto">
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2 tracking-wide">1. Select Column</label><div class="relative"><select id="waColumn" class="w-full p-3 pl-4 pr-10 text-sm bg-slate-50 border border-slate-200 rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-green-500"><option value="all">All Columns (Any Match)</option></select><div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-400"><i class="fas fa-calendar-alt text-xs"></i></div></div></div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-2 tracking-wide">2. Select Status</label><input type="hidden" id="waCategory" value="pending"><div class="grid grid-cols-3 gap-2"><button onclick="selectWaCategory('pending')" id="cat-btn-pending" class="p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-all duration-200 hover:scale-[1.02]"><i class="fas fa-clock text-lg mb-1"></i><span class="text-xs font-bold">Pending</span></button><button onclick="selectWaCategory('empty')" id="cat-btn-empty" class="p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-all duration-200 hover:scale-[1.02]"><i class="far fa-circle text-lg mb-1"></i><span class="text-xs font-bold">Unselected</span></button><button onclick="selectWaCategory('issue')" id="cat-btn-issue" class="p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-all duration-200 hover:scale-[1.02]"><i class="fas fa-exclamation-circle text-lg mb-1"></i><span class="text-xs font-bold">Issue</span></button></div></div>
@@ -202,7 +177,6 @@
         </div>
     </div>
 
-    <!-- Personal WhatsApp -->
     <div id="waPersonalModal" class="fixed inset-0 bg-black/50 z-[70] hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-xs overflow-hidden">
             <div class="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center"><div class="flex items-center gap-2"><i class="fab fa-whatsapp text-green-600 text-xl"></i><h3 class="font-bold text-lg text-slate-800">Message</h3></div><button onclick="closeModal('waPersonalModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button></div>
@@ -211,23 +185,18 @@
         </div>
     </div>
 
-    <!-- Confirm Modal -->
     <div id="confirmModal" class="fixed inset-0 bg-black/50 z-[80] hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-xs p-6 text-center"><i class="fas fa-exclamation-triangle text-3xl text-red-500 mb-3"></i><h3 id="confirmTitle" class="font-bold text-slate-800 text-lg">Confirm</h3><p id="confirmMessage" class="text-sm text-slate-500 my-2">Are you sure?</p><div class="flex justify-center gap-3 mt-4"><button onclick="closeConfirmModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-bold">No</button><button id="confirmBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold shadow-lg shadow-red-200">Yes</button></div></div>
     </div>
 
-    <!-- Group/Rename Modal -->
     <div id="groupModal" class="fixed inset-0 bg-black/50 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"><div class="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center"><h3 id="groupModalTitle" class="font-bold text-lg text-slate-800">Group</h3><button onclick="closeModal('groupModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button></div><div class="p-6"><input type="hidden" id="groupIdInput"><label class="block text-xs font-bold text-slate-400 uppercase mb-1">Name</label><input type="text" id="groupNameInput" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"></div><div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2"><button id="btnDeleteGroup" onclick="deleteGroup()" class="edit-control mr-auto text-red-500 hover:text-red-700 text-xs font-bold uppercase hidden">Delete</button><button onclick="closeModal('groupModal')" class="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg text-sm font-bold">Cancel</button><button onclick="saveGroup()" class="edit-control px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg shadow font-bold text-sm">Save</button></div></div>
     </div>
 
     <script>
-        // --- APP STATE ---
         const STORAGE_KEY = 'monthly_tracker_v9';
         const GH_CONFIG_KEY = 'tracker_gh_config';
         const DEFAULT_COLS = ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];
-        
-        // DEFAULT CONFIG
         const DEFAULT_GH_USER = 'tanojsaipraveen';
         const DEFAULT_GH_REPO = 'Tracker';
 
@@ -237,14 +206,11 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             const storedConfig = localStorage.getItem(GH_CONFIG_KEY);
-            if (storedConfig) {
-                ghConfig = JSON.parse(storedConfig);
-            } else {
-                // Set Defaults
+            if (storedConfig) ghConfig = JSON.parse(storedConfig);
+            else {
                 ghConfig = { user: DEFAULT_GH_USER, repo: DEFAULT_GH_REPO, token: '', sha: null, readOnly: true };
                 localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
             }
-            
             updateSyncStatus();
             loadFromGitHub(); 
             navTo('home');
@@ -257,16 +223,16 @@
             const refreshBtn = document.getElementById('refreshBtn');
             
             if (isSyncing) {
-                ind.className = "w-2 h-2 rounded-full bg-blue-500 animate-pulse";
+                ind.className = "w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse border border-white";
                 if(txt) txt.textContent = "Syncing...";
                 if(refreshBtn) refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Syncing...';
             } else if (ghConfig) {
-                const mode = ghConfig.readOnly ? "Viewer Mode" : "Admin Mode";
-                ind.className = ghConfig.readOnly ? "w-2 h-2 rounded-full bg-yellow-500" : "w-2 h-2 rounded-full bg-green-500";
-                if(txt) txt.textContent = mode + " (" + ghConfig.repo + ")";
+                const mode = ghConfig.readOnly ? "Viewer" : "Admin";
+                ind.className = ghConfig.readOnly ? "w-2.5 h-2.5 rounded-full bg-yellow-500 border border-white" : "w-2.5 h-2.5 rounded-full bg-green-500 border border-white";
+                if(txt) txt.textContent = mode + " Mode";
                 if(refreshBtn) refreshBtn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Tap to refresh data';
             } else {
-                ind.className = "w-2 h-2 rounded-full bg-slate-300";
+                ind.className = "w-2.5 h-2.5 rounded-full bg-slate-300 border border-white";
             }
             applyReadOnlyMode();
         }
@@ -275,11 +241,9 @@
             if (ghConfig && ghConfig.readOnly) {
                 document.body.classList.add('read-only');
                 document.getElementById('readOnlyBadge').classList.remove('hidden');
-                document.getElementById('readOnlyMsg').classList.remove('hidden');
             } else {
                 document.body.classList.remove('read-only');
                 document.getElementById('readOnlyBadge').classList.add('hidden');
-                document.getElementById('readOnlyMsg').classList.add('hidden');
             }
         }
 
@@ -288,7 +252,6 @@
             const headers = { 'Accept': 'application/vnd.github.v3+json', 'cache-control': 'no-cache' };
             if (ghConfig.token) headers['Authorization'] = `token ${ghConfig.token}`;
             
-            // Cache busting param
             const url = `https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/data.json?t=${Date.now()}`;
 
             try {
@@ -297,7 +260,7 @@
                     const json = await res.json();
                     const content = decodeURIComponent(escape(atob(json.content)));
                     app = JSON.parse(content);
-                    ghConfig.sha = json.sha;
+                    ghConfig.sha = json.sha; 
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(app));
                     localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
                     
@@ -306,19 +269,18 @@
                     }
                     updateHeaderGroup(); renderTable(); renderGroupsList(); renderColumnManager();
                 } else if (res.status === 404) {
-                    console.log("File not found. If Admin, save will create it.");
+                    console.log("File not found. Save will create it.");
                     if(!localStorage.getItem(STORAGE_KEY)) resetData();
                 }
             } catch(e) { console.log(e); loadData(); }
-            isSyncing = false; updateSyncStatus();
+            finally { isSyncing = false; updateSyncStatus(); }
         }
 
         async function saveToGitHub() {
             if(!ghConfig || ghConfig.readOnly) return;
+
             isSyncing = true; updateSyncStatus();
-            
             try {
-                // 1. GET latest SHA (critical)
                 const headers = { 'Authorization': `token ${ghConfig.token}`, 'Accept': 'application/vnd.github.v3+json', 'cache-control': 'no-cache' };
                 const getRes = await fetch(`https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/data.json?t=${Date.now()}`, { headers });
                 
@@ -328,7 +290,6 @@
                     currentSha = json.sha;
                 }
 
-                // 2. PUT new data
                 const content = btoa(unescape(encodeURIComponent(JSON.stringify(app))));
                 const body = { message: "Update data", content: content };
                 if (currentSha) body.sha = currentSha;
@@ -343,267 +304,70 @@
                     const json = await res.json();
                     ghConfig.sha = json.content.sha;
                     localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
-                } else {
-                    const err = await res.text();
-                    alert("Save Failed: " + err);
+                } else if(res.status === 409) {
+                    await loadFromGitHub(); await saveToGitHub(); 
                 }
-            } catch(e) { alert("Network Error"); console.error(e); }
-            isSyncing = false; updateSyncStatus();
+            } catch(e) { console.error(e); alert("Sync Error"); }
+            finally { isSyncing = false; updateSyncStatus(); }
         }
 
         async function testConnection() {
             const user = document.getElementById('ghUser').value;
             const repo = document.getElementById('ghRepo').value;
             const token = document.getElementById('ghToken').value;
-            
             const headers = { 'Accept': 'application/vnd.github.v3+json' };
             if(token) headers['Authorization'] = `token ${token}`;
-
             try {
                 const res = await fetch(`https://api.github.com/repos/${user}/${repo}`, { headers });
-                if(res.ok) alert("Connection Successful! Repo exists and is accessible.");
-                else alert("Connection Failed. Check Username, Repo Name, or Token.");
+                if(res.ok) alert("Connection Successful!"); else alert("Connection Failed.");
             } catch(e) { alert("Network Error"); }
         }
 
         function openGitHubModal() {
             document.getElementById('githubModal').classList.remove('hidden');
-            document.getElementById('ghUser').value = ghConfig.user;
-            document.getElementById('ghRepo').value = ghConfig.repo;
-            document.getElementById('ghToken').value = ghConfig.token;
+            if(ghConfig) {
+                document.getElementById('ghUser').value = ghConfig.user || DEFAULT_GH_USER;
+                document.getElementById('ghRepo').value = ghConfig.repo || DEFAULT_GH_REPO;
+                document.getElementById('ghToken').value = ghConfig.token || '';
+            }
         }
 
         function saveGithubConfig() {
             const user = document.getElementById('ghUser').value.trim();
             const repo = document.getElementById('ghRepo').value.trim();
             const token = document.getElementById('ghToken').value.trim();
-            
             if(user && repo) {
                 const isReadOnly = (token === "");
                 ghConfig = { user, repo, token, sha: null, readOnly: isReadOnly };
                 localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
                 closeModal('githubModal');
                 loadFromGitHub();
-            } else alert("Username and Repo required");
+            } else alert("Required fields missing");
         }
 
-        // --- NAVIGATION ---
-        function navTo(pageId) {
-            app.currentPage = pageId;
-            document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
-            document.getElementById(`page-${pageId}`).classList.add('active');
-            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(`nav-${pageId}`).classList.add('active');
-            if(pageId === 'home') renderTable();
-            if(pageId === 'groups') renderGroupsList();
-            if(pageId === 'columns') renderColumnManager();
-        }
-
-        function loadData() {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-                app = JSON.parse(stored);
-                if (!app.groups || app.groups.length === 0) resetData();
-                else if (!app.groups.find(g => g.id === app.activeGroupId)) app.activeGroupId = app.groups[0].id;
-            } else resetData();
-            updateHeaderGroup();
-        }
-
-        function saveData() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(app));
-            updateHeaderGroup();
-            saveToGitHub();
-        }
-
-        function resetData() {
-            const defId = crypto.randomUUID();
-            app.groups = [{ id: defId, name: "Default Group", columns: DEFAULT_COLS.map(n => ({ id: crypto.randomUUID(), name: n })), people: [] }];
-            app.activeGroupId = defId;
-            saveData();
-        }
-
+        function navTo(pageId) { app.currentPage = pageId; document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active')); document.getElementById(`page-${pageId}`).classList.add('active'); document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active')); document.getElementById(`nav-${pageId}`).classList.add('active'); if(pageId === 'home') renderTable(); if(pageId === 'groups') renderGroupsList(); if(pageId === 'columns') renderColumnManager(); }
+        function loadData() { const stored = localStorage.getItem(STORAGE_KEY); if (stored) { app = JSON.parse(stored); if (!app.groups || app.groups.length === 0) resetData(); else if (!app.groups.find(g => g.id === app.activeGroupId)) app.activeGroupId = app.groups[0].id; } else resetData(); updateHeaderGroup(); }
+        function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(app)); updateHeaderGroup(); saveToGitHub(); }
+        function resetData() { const defId = crypto.randomUUID(); app.groups = [{ id: defId, name: "Default Group", columns: DEFAULT_COLS.map(n => ({ id: crypto.randomUUID(), name: n })), people: [] }]; app.activeGroupId = defId; saveData(); }
         function getActiveGroup() { return app.groups.find(g => g.id === app.activeGroupId); }
         function updateHeaderGroup() { const g = getActiveGroup(); if(g) document.getElementById('headerGroupName').textContent = g.name; }
-
-        function toggleGroupDropdown() {
-            const dd = document.getElementById('groupDropdown');
-            if(dd.classList.contains('hidden')) {
-                dd.innerHTML = '';
-                app.groups.forEach(g => {
-                    const div = document.createElement('div');
-                    div.className = `p-2 rounded-lg text-sm font-medium cursor-pointer hover:bg-slate-50 ${g.id === app.activeGroupId ? 'bg-blue-50 text-blue-600' : 'text-slate-600'}`;
-                    div.textContent = g.name;
-                    div.onclick = () => { app.activeGroupId = g.id; saveData(); navTo('home'); dd.classList.add('hidden'); };
-                    dd.appendChild(div);
-                });
-                dd.classList.remove('hidden');
-            } else dd.classList.add('hidden');
-        }
-
-        // --- RENDER TABLE ---
-        function renderTable() {
-            const g = getActiveGroup();
-            const tbody = document.getElementById('trackerBody');
-            const thead = document.getElementById('tableHeaderRow');
-            const empty = document.getElementById('emptyState');
-            const filter = document.getElementById('searchInput').value.toLowerCase();
-
-            if(!g) return;
-
-            thead.innerHTML = `<th class="p-3 border-b border-r border-slate-200 sticky-col min-w-[140px] bg-slate-50">Name</th>`;
-            g.columns.forEach(c => { thead.innerHTML += `<th class="p-3 border-b border-slate-200 text-center min-w-[60px]">${c.name}</th>`; });
-            thead.innerHTML += `<th class="p-3 border-b border-l border-slate-200 text-center w-[50px] edit-control"><i class="fas fa-cog"></i></th>`;
-
-            tbody.innerHTML = '';
-            let count = 0;
-            g.people.forEach(p => {
-                if(filter && !p.name.toLowerCase().includes(filter)) return;
-                count++;
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50";
-                let html = `<td class="p-2 border-b border-r border-slate-100 sticky-col bg-white"><div class="flex justify-between items-center"><div onclick="openEditModal('${p.id}')"><div class="font-bold text-slate-700 truncate max-w-[100px]">${p.name}</div><div class="text-[10px] text-slate-400 truncate max-w-[100px]">${p.details || '-'}</div></div><button onclick="openEditModal('${p.id}')" class="text-slate-300 hover:text-blue-500 edit-control"><i class="fas fa-pencil-alt text-xs"></i></button></div></td>`;
-                g.columns.forEach(c => {
-                    const val = p.months[c.id] || 0;
-                    const icons = ['','<i class="fas fa-check"></i>','<i class="fas fa-clock"></i>','<i class="fas fa-times"></i>'];
-                    html += `<td class="p-1 border-b border-slate-100 text-center"><button onclick="toggleStatus('${p.id}','${c.id}')" class="w-9 h-9 rounded-lg text-xs flex items-center justify-center mx-auto transition-transform active:scale-95 status-${val} status-btn">${icons[val]}</button></td>`;
-                });
-                html += `<td class="p-2 border-b border-l border-slate-100 text-center edit-control"><button onclick="deletePerson('${p.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-trash"></i></button></td>`;
-                tr.innerHTML = html;
-                tbody.appendChild(tr);
-            });
-            empty.classList.toggle('hidden', count > 0);
-        }
-
-        function toggleStatus(pid, cid) {
-            if(ghConfig.readOnly) return;
-            const p = getActiveGroup().people.find(x => x.id === pid);
-            if(p) { p.months[cid] = ((p.months[cid] || 0) + 1) % 4; saveData(); renderTable(); }
-        }
-
-        // --- GROUPS ---
-        function renderGroupsList() {
-            const list = document.getElementById('groupsList');
-            list.innerHTML = '';
-            app.groups.forEach(g => {
-                const isActive = g.id === app.activeGroupId;
-                const div = document.createElement('div');
-                div.className = `p-4 rounded-xl border flex justify-between items-center ${isActive ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200'}`;
-                div.innerHTML = `<div onclick="switchGroup('${g.id}')" class="flex-1 cursor-pointer"><h3 class="font-bold text-sm ${isActive ? 'text-blue-700' : 'text-slate-700'}">${g.name}</h3><p class="text-[10px] text-slate-400">${g.people.length} People • ${g.columns.length} Cols</p></div><div class="flex gap-2 edit-control"><button onclick="renameGroup('${g.id}')" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-blue-500 flex items-center justify-center"><i class="fas fa-edit text-xs"></i></button>${app.groups.length > 1 ? `<button onclick="deleteGroup('${g.id}')" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 flex items-center justify-center"><i class="fas fa-trash text-xs"></i></button>` : ''}</div>`;
-                list.appendChild(div);
-            });
-        }
-        function createGroup() {
-            if(ghConfig.readOnly) return;
-            const name = document.getElementById('newGroupInput').value.trim();
-            if(!name) return;
-            const newId = crypto.randomUUID();
-            app.groups.push({ id: newId, name: name, columns: DEFAULT_COLS.map(n => ({ id: crypto.randomUUID(), name: n })), people: [] });
-            document.getElementById('newGroupInput').value = '';
-            app.activeGroupId = newId; saveData(); renderGroupsList();
-        }
+        function toggleGroupDropdown() { const dd = document.getElementById('groupDropdown'); if(dd.classList.contains('hidden')) { dd.innerHTML = ''; app.groups.forEach(g => { const div = document.createElement('div'); div.className = `p-2 rounded-lg text-sm font-medium cursor-pointer hover:bg-slate-50 ${g.id === app.activeGroupId ? 'bg-blue-50 text-blue-600' : 'text-slate-600'}`; div.textContent = g.name; div.onclick = () => { app.activeGroupId = g.id; saveData(); navTo('home'); dd.classList.add('hidden'); }; dd.appendChild(div); }); dd.classList.remove('hidden'); } else dd.classList.add('hidden'); }
+        function renderTable() { const g = getActiveGroup(); const tbody = document.getElementById('trackerBody'); const thead = document.getElementById('tableHeaderRow'); const empty = document.getElementById('emptyState'); const filter = document.getElementById('searchInput').value.toLowerCase(); if(!g) return; thead.innerHTML = `<th class="p-3 border-b border-r border-slate-200 sticky-col min-w-[140px] bg-slate-50">Name</th>`; g.columns.forEach(c => { thead.innerHTML += `<th class="p-3 border-b border-slate-200 text-center min-w-[60px]">${c.name}</th>`; }); thead.innerHTML += `<th class="p-3 border-b border-l border-slate-200 text-center w-[50px] edit-control"><i class="fas fa-cog"></i></th>`; tbody.innerHTML = ''; let count = 0; g.people.forEach(p => { if(filter && !p.name.toLowerCase().includes(filter)) return; count++; const tr = document.createElement('tr'); tr.className = "hover:bg-slate-50"; let html = `<td class="p-2 border-b border-r border-slate-100 sticky-col bg-white"><div class="flex justify-between items-center"><div onclick="openEditModal('${p.id}')"><div class="font-bold text-slate-700 truncate max-w-[100px]">${p.name}</div><div class="text-[10px] text-slate-400 truncate max-w-[100px]">${p.details || '-'}</div></div><button onclick="openEditModal('${p.id}')" class="text-slate-300 hover:text-blue-500 edit-control"><i class="fas fa-pencil-alt text-xs"></i></button></div></td>`; g.columns.forEach(c => { const val = p.months[c.id] || 0; const icons = ['','<i class="fas fa-check"></i>','<i class="fas fa-clock"></i>','<i class="fas fa-times"></i>']; html += `<td class="p-1 border-b border-slate-100 text-center"><button onclick="toggleStatus('${p.id}','${c.id}')" class="w-9 h-9 rounded-lg text-xs flex items-center justify-center mx-auto transition-transform active:scale-95 status-${val} status-btn">${icons[val]}</button></td>`; }); html += `<td class="p-2 border-b border-l border-slate-100 text-center edit-control"><button onclick="deletePerson('${p.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-trash"></i></button></td>`; tr.innerHTML = html; tbody.appendChild(tr); }); empty.classList.toggle('hidden', count > 0); }
+        function toggleStatus(pid, cid) { if(ghConfig.readOnly) return; const p = getActiveGroup().people.find(x => x.id === pid); if(p) { p.months[cid] = ((p.months[cid] || 0) + 1) % 4; saveData(); renderTable(); } }
+        function renderGroupsList() { const list = document.getElementById('groupsList'); list.innerHTML = ''; app.groups.forEach(g => { const isActive = g.id === app.activeGroupId; const div = document.createElement('div'); div.className = `p-4 rounded-xl border flex justify-between items-center ${isActive ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200'}`; div.innerHTML = `<div onclick="switchGroup('${g.id}')" class="flex-1 cursor-pointer"><h3 class="font-bold text-sm ${isActive ? 'text-blue-700' : 'text-slate-700'}">${g.name}</h3><p class="text-[10px] text-slate-400">${g.people.length} People • ${g.columns.length} Cols</p></div><div class="flex gap-2 edit-control"><button onclick="renameGroup('${g.id}')" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-blue-500 flex items-center justify-center"><i class="fas fa-edit text-xs"></i></button>${app.groups.length > 1 ? `<button onclick="deleteGroup('${g.id}')" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 flex items-center justify-center"><i class="fas fa-trash text-xs"></i></button>` : ''}</div>`; list.appendChild(div); }); }
+        function createGroup() { if(ghConfig.readOnly) return; const name = document.getElementById('newGroupInput').value.trim(); if(!name) return; const newId = crypto.randomUUID(); app.groups.push({ id: newId, name: name, columns: DEFAULT_COLS.map(n => ({ id: crypto.randomUUID(), name: n })), people: [] }); document.getElementById('newGroupInput').value = ''; app.activeGroupId = newId; saveData(); renderGroupsList(); }
         function switchGroup(id) { app.activeGroupId = id; saveData(); renderGroupsList(); }
         function renameGroup(id) { openGroupModal('edit', id); }
-        function deleteGroup(id) {
-            if(ghConfig.readOnly) return;
-            const gid = id || document.getElementById('groupIdInput').value;
-            const g = app.groups.find(x => x.id === gid);
-            showConfirmModal("Delete Group", `Delete "${g.name}"?`, () => {
-                app.groups = app.groups.filter(x => x.id !== gid);
-                if(app.activeGroupId === gid) app.activeGroupId = app.groups[0].id;
-                saveData(); renderGroupsList(); closeModal('groupModal');
-            });
-        }
-
-        // --- COLUMNS ---
-        function renderColumnManager() {
-            const g = getActiveGroup();
-            if(!g) return;
-            const list = document.getElementById('columnList');
-            list.innerHTML = '';
-            g.columns.forEach((c, i) => {
-                const div = document.createElement('div');
-                div.className = "flex items-center gap-2 bg-white p-3 border border-slate-200 rounded-xl mb-2 shadow-sm";
-                div.innerHTML = `<span class="text-slate-300 cursor-move"><i class="fas fa-grip-vertical"></i></span><input type="text" value="${c.name}" onchange="updateColName(${i}, this.value)" class="flex-1 text-sm font-medium text-slate-700 bg-transparent outline-none"><button onclick="moveCol(${i}, -1)" ${i===0?'disabled':''} class="text-slate-400 hover:text-blue-500 disabled:opacity-30"><i class="fas fa-arrow-up"></i></button><button onclick="moveCol(${i}, 1)" ${i===g.columns.length-1?'disabled':''} class="text-slate-400 hover:text-blue-500 disabled:opacity-30"><i class="fas fa-arrow-down"></i></button><button onclick="delCol(${i})" class="text-slate-300 hover:text-red-500 ml-2"><i class="fas fa-trash"></i></button>`;
-                list.appendChild(div);
-            });
-        }
-        function addColumn() {
-            if(ghConfig.readOnly) return;
-            const name = document.getElementById('newColumnName').value.trim();
-            if(!name) return;
-            const g = getActiveGroup();
-            const cid = crypto.randomUUID();
-            g.columns.push({ id: cid, name: name });
-            g.people.forEach(p => p.months[cid] = 0);
-            document.getElementById('newColumnName').value = '';
-            saveData(); renderColumnManager();
-        }
+        function deleteGroup(id) { if(ghConfig.readOnly) return; const gid = id || document.getElementById('groupIdInput').value; const g = app.groups.find(x => x.id === gid); showConfirmModal("Delete Group", `Delete "${g.name}"?`, () => { app.groups = app.groups.filter(x => x.id !== gid); if(app.activeGroupId === gid) app.activeGroupId = app.groups[0].id; saveData(); renderGroupsList(); closeModal('groupModal'); }); }
+        function renderColumnManager() { const g = getActiveGroup(); if(!g) return; const list = document.getElementById('columnList'); list.innerHTML = ''; g.columns.forEach((c, i) => { const div = document.createElement('div'); div.className = "flex items-center gap-2 bg-white p-3 border border-slate-200 rounded-xl mb-2 shadow-sm"; div.innerHTML = `<span class="text-slate-300 cursor-move"><i class="fas fa-grip-vertical"></i></span><input type="text" value="${c.name}" onchange="updateColName(${i}, this.value)" class="flex-1 text-sm font-medium text-slate-700 bg-transparent outline-none"><button onclick="moveCol(${i}, -1)" ${i===0?'disabled':''} class="text-slate-400 hover:text-blue-500 disabled:opacity-30"><i class="fas fa-arrow-up"></i></button><button onclick="moveCol(${i}, 1)" ${i===g.columns.length-1?'disabled':''} class="text-slate-400 hover:text-blue-500 disabled:opacity-30"><i class="fas fa-arrow-down"></i></button><button onclick="delCol(${i})" class="text-slate-300 hover:text-red-500 ml-2"><i class="fas fa-trash"></i></button>`; list.appendChild(div); }); }
+        function addColumn() { if(ghConfig.readOnly) return; const name = document.getElementById('newColumnName').value.trim(); if(!name) return; const g = getActiveGroup(); const cid = crypto.randomUUID(); g.columns.push({ id: cid, name: name }); g.people.forEach(p => p.months[cid] = 0); document.getElementById('newColumnName').value = ''; saveData(); renderColumnManager(); }
         function updateColName(i, val) { if(ghConfig.readOnly) return; getActiveGroup().columns[i].name = val; saveData(); }
         function moveCol(i, dir) { if(ghConfig.readOnly) return; const g = getActiveGroup(); [g.columns[i], g.columns[i+dir]] = [g.columns[i+dir], g.columns[i]]; saveData(); renderColumnManager(); }
         function delCol(i) { if(ghConfig.readOnly) return; showConfirmModal("Delete Column", "Are you sure?", () => { getActiveGroup().columns.splice(i, 1); saveData(); renderColumnManager(); }); }
-
-        // --- PERSON MODALS ---
-        let editId = null, isAddMode = true;
-        function addNewRow() { isAddMode = true; document.getElementById('modalTitle').textContent = "Add Person"; document.getElementById('editName').value = ''; document.getElementById('editDetails').value = ''; document.getElementById('editModal').classList.remove('hidden'); }
-        function openEditModal(id) { 
-            editId = id; const p = getActiveGroup().people.find(x => x.id === id); 
-            document.getElementById('modalTitle').textContent = "Edit Person"; document.getElementById('editName').value = p.name; document.getElementById('editDetails').value = p.details; 
-            const disabled = ghConfig.readOnly;
-            document.getElementById('editName').disabled = disabled;
-            document.getElementById('editDetails').disabled = disabled;
-            isAddMode = false;
-            document.getElementById('editModal').classList.remove('hidden'); 
-        }
-        function saveDataFromModal() {
-            if(ghConfig.readOnly) return;
-            const name = document.getElementById('editName').value.trim();
-            const details = document.getElementById('editDetails').value.trim();
-            if(!name) return;
-            const g = getActiveGroup();
-            if(isAddMode) {
-                const nid = crypto.randomUUID();
-                const m = {}; g.columns.forEach(c => m[c.id] = 0);
-                g.people.push({ id: nid, name: name, details: details, months: m });
-            } else { const p = g.people.find(x => x.id === editId); p.name = name; p.details = details; }
-            saveData(); renderTable(); closeModal('editModal');
-        }
-        function deletePerson(id) { 
-            if(ghConfig.readOnly) return;
-            showConfirmModal("Delete Person", "Are you sure?", () => { const g = getActiveGroup(); g.people = g.people.filter(p => p.id !== id); saveData(); renderTable(); }); 
-        }
-
-        // --- WHATSAPP & EXPORT ---
-        function openGroupWhatsAppModal() {
-            const g = getActiveGroup();
-            const colSel = document.getElementById('waColumn'); colSel.innerHTML = '<option value="all">All Columns</option>'; g.columns.forEach(c => { const opt = document.createElement('option'); opt.value = c.id; opt.text = c.name; colSel.appendChild(opt); });
-            const list = document.getElementById('waPayeeList'); list.innerHTML = ''; document.getElementById('waPayeeSearch').value = ''; document.getElementById('waPayee').value = '';
-            if(g.people.length === 0) list.innerHTML = '<p class="text-xs text-center text-slate-400 p-2">No people</p>';
-            else { g.people.forEach(p => { const div = document.createElement('div'); div.className = "p-2 rounded-lg hover:bg-slate-50 cursor-pointer flex items-center gap-2 payee-item"; div.setAttribute('data-name', p.name.toLowerCase()); div.onclick = () => selectPayee(p.name, div); div.innerHTML = `<div class="w-4 h-4 rounded-full border border-slate-300 ring flex items-center justify-center text-[10px] text-white"><i class="fas fa-check opacity-0"></i></div> <span class="text-sm text-slate-600 font-medium">${p.name}</span>`; list.appendChild(div); }); }
-            document.getElementById('waGroupMessage').value = ''; selectWaCategory('pending'); document.getElementById('whatsappGroupModal').classList.remove('hidden');
-        }
-        function selectPayee(name, el) { document.getElementById('waPayee').value = name; document.querySelectorAll('.payee-item .ring').forEach(r => { r.className = "w-4 h-4 rounded-full border border-slate-300 ring flex items-center justify-center text-[10px] text-white"; r.querySelector('i').classList.add('opacity-0'); }); const r = el.querySelector('.ring'); r.className = "w-4 h-4 rounded-full bg-green-500 border-green-500 ring flex items-center justify-center text-[10px] text-white"; r.querySelector('i').classList.remove('opacity-0'); }
-        function filterPayeeList() { const t = document.getElementById('waPayeeSearch').value.toLowerCase(); document.querySelectorAll('.payee-item').forEach(el => { el.style.display = el.getAttribute('data-name').includes(t) ? 'flex' : 'none'; }); }
-        function selectWaCategory(type) { document.getElementById('waCategory').value = type; const map = { 'pending': { id: 'cat-btn-pending', active: 'bg-yellow-50 border-yellow-400 text-yellow-700' }, 'empty': { id: 'cat-btn-empty', active: 'bg-slate-100 border-slate-400 text-slate-700' }, 'issue': { id: 'cat-btn-issue', active: 'bg-red-50 border-red-400 text-red-700' } }; Object.keys(map).forEach(k => { document.getElementById(map[k].id).className = "p-3 rounded-xl border-2 bg-white border-slate-200 text-slate-400 text-xs font-bold flex flex-col items-center gap-1 transition-transform active:scale-95"; }); const sel = map[type]; document.getElementById(sel.id).className = `p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center gap-1 transition-transform active:scale-95 ${sel.active}`; }
-        function generateSmartMessage() {
-            const cat = document.getElementById('waCategory').value; const payee = document.getElementById('waPayee').value; const colId = document.getElementById('waColumn').value;
-            if(!payee) return alert("Select Payee");
-            let targetStat = 0; if(cat === 'pending') targetStat = 2; else if(cat === 'issue') targetStat = 3;
-            const g = getActiveGroup(); let names = [];
-            g.people.forEach(p => { let match = false; if(colId === 'all') { if(Object.values(p.months).includes(targetStat)) match = true; } else { if(p.months[colId] === targetStat) match = true; } if(match) names.push(p.name); });
-            if(names.length === 0) return alert("No people found.");
-            document.getElementById('waGroupMessage').value = `${names.join(", ")} send money to ${payee}`;
-        }
-        function sendGroupWhatsApp() { const msg = document.getElementById('waGroupMessage').value; if(!msg.trim()) return alert("Message empty"); window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank'); closeModal('whatsappGroupModal'); }
-        function sendPersonalWhatsApp() { const d = document.getElementById('editDetails').value; const m = d.match(/[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}/); if(m) { const ph = m[0].replace(/\D/g, ''); document.getElementById('waTargetText').textContent = "To: " + document.getElementById('editName').value; document.getElementById('waPersonalPhone').value = ph; document.getElementById('waPersonalModal').classList.remove('hidden'); } else alert("No phone number"); }
-        function triggerPersonalWa() { const ph = document.getElementById('waPersonalPhone').value; const msg = document.getElementById('waPersonalMsg').value; window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`, '_blank'); closeModal('waPersonalModal'); }
-        function exportAction(type) { const g = getActiveGroup(); let csv = "Name,Details," + g.columns.map(c=>c.name).join(",") + "\n"; g.people.forEach(p => { const ms = v => v===1?"Done":v===2?"Pending":v===3?"Issue":""; let r = `"${p.name.replace(/"/g,'""')}","${p.details.replace(/"/g,'""')}"`; g.columns.forEach(c => r += `,${ms(p.months[c.id])}`); csv += r + "\n"; }); if(type==='email') window.location.href = `mailto:?subject=${encodeURIComponent(g.name)}&body=${encodeURIComponent(csv)}`; else if(type==='clipboard') navigator.clipboard.writeText(csv).then(()=>alert("Copied!")); else { const a = document.createElement("a"); a.href = encodeURI("data:text/csv;charset=utf-8," + csv); a.download = g.name + ".csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a); } }
-        function importCSV(input) { if(input.files[0]) { const r = new FileReader(); r.onload = e => { const txt = e.target.result; const lines = txt.trim().split(/\r?\n/); if(lines.length<2) return; const parse = l => { const res = []; let m, re = /(?:^|,)(\"(?:[^\"]+|\"\")*\"|[^,]*)/g; while(m=re.exec(l)) { let v = m[1]||m[0]; if(m[0].startsWith(',')) v=m[0].substring(1); res.push(v.startsWith('"')?v.slice(1,-1).replace(/""/g,'"'):v); } return res; }; const h = parse(lines[0]); const g = getActiveGroup(); const map = []; for(let i=2; i<h.length; i++) { const c = g.columns.find(x=>x.name===h[i].trim()); if(c) map.push({idx:i, id:c.id}); else { const nid=crypto.randomUUID(); g.columns.push({id:nid, name:h[i].trim()}); map.push({idx:i, id:nid}); } } const stats = {"Done":1,"Pending":2,"Issue":3}; for(let i=1; i<lines.length; i++) { const r = parse(lines[i]); if(r.length<2 || r[0]==='Name') continue; const nid = crypto.randomUUID(); const mo = {}; g.columns.forEach(c => mo[c.id] = 0); const p = { id: nid, name: r[0], details: r[1], months: mo }; map.forEach(m => { if(stats[r[m.idx]]) p.months[m.id] = stats[r[m.idx]]; }); g.people.push(p); } saveData(); renderTable(); }; r.readAsText(input.files[0]); input.value=''; } }
+        let editId = null, isAddMode = true; function addNewRow() { isAddMode = true; document.getElementById('modalTitle').textContent = "Add Person"; document.getElementById('editName').value = ''; document.getElementById('editDetails').value = ''; document.getElementById('editModal').classList.remove('hidden'); } function openEditModal(id) { editId = id; const p = getActiveGroup().people.find(x => x.id === id); document.getElementById('modalTitle').textContent = "Edit Person"; document.getElementById('editName').value = p.name; document.getElementById('editDetails').value = p.details; const disabled = ghConfig.readOnly; document.getElementById('editName').disabled = disabled; document.getElementById('editDetails').disabled = disabled; isAddMode = false; document.getElementById('editModal').classList.remove('hidden'); } function saveDataFromModal() { if(ghConfig.readOnly) return; const name = document.getElementById('editName').value.trim(); const details = document.getElementById('editDetails').value.trim(); if(!name) return; const g = getActiveGroup(); if(isAddMode) { const nid = crypto.randomUUID(); const m = {}; g.columns.forEach(c => m[c.id] = 0); g.people.push({ id: nid, name: name, details: details, months: m }); } else { const p = g.people.find(x => x.id === editId); p.name = name; p.details = details; } saveData(); renderTable(); closeModal('editModal'); } function deletePerson(id) { if(ghConfig.readOnly) return; showConfirmModal("Delete Person", "Are you sure?", () => { const g = getActiveGroup(); g.people = g.people.filter(p => p.id !== id); saveData(); renderTable(); }); }
+        function openGroupWhatsAppModal() { const g = getActiveGroup(); const colSel = document.getElementById('waColumn'); colSel.innerHTML = '<option value="all">All Columns</option>'; g.columns.forEach(c => { const opt = document.createElement('option'); opt.value = c.id; opt.text = c.name; colSel.appendChild(opt); }); const list = document.getElementById('waPayeeList'); list.innerHTML = ''; document.getElementById('waPayeeSearch').value = ''; document.getElementById('waPayee').value = ''; if(g.people.length === 0) list.innerHTML = '<p class="text-xs text-center text-slate-400 p-2">No people</p>'; else { g.people.forEach(p => { const div = document.createElement('div'); div.className = "p-2 rounded-lg hover:bg-slate-50 cursor-pointer flex items-center gap-2 payee-item"; div.setAttribute('data-name', p.name.toLowerCase()); div.onclick = () => selectPayee(p.name, div); div.innerHTML = `<div class="w-4 h-4 rounded-full border border-slate-300 ring flex items-center justify-center text-[10px] text-white"><i class="fas fa-check opacity-0"></i></div> <span class="text-sm text-slate-600 font-medium">${p.name}</span>`; list.appendChild(div); }); } document.getElementById('waGroupMessage').value = ''; selectWaCategory('pending'); document.getElementById('whatsappGroupModal').classList.remove('hidden'); } function selectPayee(name, el) { document.getElementById('waPayee').value = name; document.querySelectorAll('.payee-item .ring').forEach(r => { r.className = "w-4 h-4 rounded-full border border-slate-300 ring flex items-center justify-center text-[10px] text-white"; r.querySelector('i').classList.add('opacity-0'); }); const r = el.querySelector('.ring'); r.className = "w-4 h-4 rounded-full bg-green-500 border-green-500 ring flex items-center justify-center text-[10px] text-white"; r.querySelector('i').classList.remove('opacity-0'); } function filterPayeeList() { const t = document.getElementById('waPayeeSearch').value.toLowerCase(); document.querySelectorAll('.payee-item').forEach(el => { el.style.display = el.getAttribute('data-name').includes(t) ? 'flex' : 'none'; }); } function selectWaCategory(type) { document.getElementById('waCategory').value = type; const map = { 'pending': { id: 'cat-btn-pending', active: 'bg-yellow-50 border-yellow-400 text-yellow-700' }, 'empty': { id: 'cat-btn-empty', active: 'bg-slate-100 border-slate-400 text-slate-700' }, 'issue': { id: 'cat-btn-issue', active: 'bg-red-50 border-red-400 text-red-700' } }; Object.keys(map).forEach(k => { document.getElementById(map[k].id).className = "p-3 rounded-xl border-2 bg-white border-slate-200 text-slate-400 text-xs font-bold flex flex-col items-center gap-1 transition-transform active:scale-95"; }); const sel = map[type]; document.getElementById(sel.id).className = `p-3 rounded-xl border-2 text-xs font-bold flex flex-col items-center gap-1 transition-transform active:scale-95 ${sel.active}`; } function generateSmartMessage() { const cat = document.getElementById('waCategory').value; const payee = document.getElementById('waPayee').value; const colId = document.getElementById('waColumn').value; if(!payee) return alert("Select Payee"); let targetStat = 0; if(cat === 'pending') targetStat = 2; else if(cat === 'issue') targetStat = 3; const g = getActiveGroup(); let names = []; g.people.forEach(p => { let match = false; if(colId === 'all') { if(Object.values(p.months).includes(targetStat)) match = true; } else { if(p.months[colId] === targetStat) match = true; } if(match) names.push(p.name); }); if(names.length === 0) return alert("No people found."); document.getElementById('waGroupMessage').value = `${names.join(", ")} send money to ${payee}`; } function sendGroupWhatsApp() { const msg = document.getElementById('waGroupMessage').value; if(!msg.trim()) return alert("Message empty"); window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank'); closeModal('whatsappGroupModal'); } function sendPersonalWhatsApp() { const d = document.getElementById('editDetails').value; const m = d.match(/[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}/); if(m) { const ph = m[0].replace(/\D/g, ''); document.getElementById('waTargetText').textContent = "To: " + document.getElementById('editName').value; document.getElementById('waPersonalPhone').value = ph; document.getElementById('waPersonalModal').classList.remove('hidden'); } else alert("No phone number"); } function triggerPersonalWa() { const ph = document.getElementById('waPersonalPhone').value; const msg = document.getElementById('waPersonalMsg').value; window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`, '_blank'); closeModal('waPersonalModal'); } function exportAction(type) { const g = getActiveGroup(); let csv = "Name,Details," + g.columns.map(c=>c.name).join(",") + "\n"; g.people.forEach(p => { const ms = v => v===1?"Done":v===2?"Pending":v===3?"Issue":""; let r = `"${p.name.replace(/"/g,'""')}","${p.details.replace(/"/g,'""')}"`; g.columns.forEach(c => r += `,${ms(p.months[c.id])}`); csv += r + "\n"; }); if(type==='email') window.location.href = `mailto:?subject=${encodeURIComponent(g.name)}&body=${encodeURIComponent(csv)}`; else if(type==='clipboard') navigator.clipboard.writeText(csv).then(()=>alert("Copied!")); else { const a = document.createElement("a"); a.href = encodeURI("data:text/csv;charset=utf-8," + csv); a.download = g.name + ".csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a); } } function importCSV(input) { if(input.files[0]) { const r = new FileReader(); r.onload = e => { const txt = e.target.result; const lines = txt.trim().split(/\r?\n/); if(lines.length<2) return; const parse = l => { const res = []; let m, re = /(?:^|,)(\"(?:[^\"]+|\"\")*\"|[^,]*)/g; while(m=re.exec(l)) { let v = m[1]||m[0]; if(m[0].startsWith(',')) v=m[0].substring(1); res.push(v.startsWith('"')?v.slice(1,-1).replace(/""/g,'"'):v); } return res; }; const h = parse(lines[0]); const g = getActiveGroup(); const map = []; for(let i=2; i<h.length; i++) { const c = g.columns.find(x=>x.name===h[i].trim()); if(c) map.push({idx:i, id:c.id}); else { const nid=crypto.randomUUID(); g.columns.push({id:nid, name:h[i].trim()}); map.push({idx:i, id:nid}); } } const stats = {"Done":1,"Pending":2,"Issue":3}; for(let i=1; i<lines.length; i++) { const r = parse(lines[i]); if(r.length<2 || r[0]==='Name') continue; const nid = crypto.randomUUID(); const mo = {}; g.columns.forEach(c => mo[c.id] = 0); const p = { id: nid, name: r[0], details: r[1], months: mo }; map.forEach(m => { if(stats[r[m.idx]]) p.months[m.id] = stats[r[m.idx]]; }); g.people.push(p); } saveData(); renderTable(); }; r.readAsText(input.files[0]); input.value=''; } }
         let confirmCb = null; function showConfirmModal(t,m,cb) { document.getElementById('confirmTitle').textContent=t; document.getElementById('confirmMessage').textContent=m; confirmCb=cb; document.getElementById('confirmModal').classList.remove('hidden'); } function closeConfirmModal() { document.getElementById('confirmModal').classList.add('hidden'); } document.getElementById('confirmBtn').onclick = () => { if(confirmCb) confirmCb(); closeConfirmModal(); }; function confirmClearAll() { showConfirmModal("Reset All", "Delete all data?", () => { localStorage.removeItem(STORAGE_KEY); loadData(); navTo('home'); }); } function closeModal(id) { document.getElementById(id).classList.add('hidden'); } function filterTable() { renderTable(); }
-
-        // Group Modal
-        function openGroupModal(mode, id=null) { const m = document.getElementById('groupModal'); document.getElementById('groupModalTitle').textContent = mode==='add' ? "Add Group" : "Edit Group"; document.getElementById('groupNameInput').value = mode==='add' ? "" : app.groups.find(g=>g.id===id).name; document.getElementById('groupIdInput').value = mode==='add' ? "" : id; document.getElementById('btnDeleteGroup').classList.toggle('hidden', mode==='add' || app.groups.length <= 1); m.classList.remove('hidden'); }
-        function openGroupSettings() { openGroupModal('edit', getActiveGroup().id); }
-        function saveGroup() { if(ghConfig.readOnly) return; const name = document.getElementById('groupNameInput').value.trim(); const id = document.getElementById('groupIdInput').value; if(!name) return; if(id) { app.groups.find(g=>g.id===id).name = name; } else { const nid=crypto.randomUUID(); app.groups.push({id:nid, name:name, columns:DEFAULT_COLS.map(n=>({id:crypto.randomUUID(), name:n})), people:[]}); app.activeGroupId=nid; } saveData(); renderGroupsList(); closeModal('groupModal'); updateHeaderGroup(); }
+        function openGroupModal(mode, id=null) { const m = document.getElementById('groupModal'); document.getElementById('groupModalTitle').textContent = mode==='add' ? "Add Group" : "Edit Group"; document.getElementById('groupNameInput').value = mode==='add' ? "" : app.groups.find(g=>g.id===id).name; document.getElementById('groupIdInput').value = mode==='add' ? "" : id; document.getElementById('btnDeleteGroup').classList.toggle('hidden', mode==='add' || app.groups.length <= 1); m.classList.remove('hidden'); } function openGroupSettings() { openGroupModal('edit', getActiveGroup().id); } function saveGroup() { if(ghConfig.readOnly) return; const name = document.getElementById('groupNameInput').value.trim(); const id = document.getElementById('groupIdInput').value; if(!name) return; if(id) { app.groups.find(g=>g.id===id).name = name; } else { const nid=crypto.randomUUID(); app.groups.push({id:nid, name:name, columns:DEFAULT_COLS.map(n=>({id:crypto.randomUUID(), name:n})), people:[]}); app.activeGroupId=nid; } saveData(); renderGroupsList(); closeModal('groupModal'); updateHeaderGroup(); }
     </script>
 </body>
 </html>
