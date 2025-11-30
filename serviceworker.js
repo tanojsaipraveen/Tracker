@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tracker-pwa-v1';
+const CACHE_NAME = 'tracker-pwa-v8';
 const urlsToCache = [
   './',
   './index.html',
