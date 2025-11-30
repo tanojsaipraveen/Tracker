@@ -3,57 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Monthly Tracker</title>
+    <title>Monthly Tracker (GitHub Sync)</title>
     
-    <!-- PWA Settings (Chrome/Android) -->
+    <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ffffff">
     <meta name="mobile-web-app-capable" content="yes">
-
-    <!-- PWA Settings (iOS/Safari) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Tracker">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%232563eb'%3E%3Cpath d='M64 32C28.7 32 0 60.7 0 96v320c0 35.3 28.7 64 64 64h384c35.3 0 64-28.7 64-64V96c0-35.3-28.7-64-64-64H64zM224 352c0 17.7-14.3 32-32 32s-32-14.3-32-32v-96c0-17.7 14.3-32 32-32s32 14.3 32 32v96zm128 0c0 17.7-14.3 32-32 32s-32-14.3-32-32v-96c0-17.7 14.3-32 32-32s32 14.3 32 32v96z'/%3E%3C/svg%3E">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* Base Styles */
-        html, body {
-            height: 100%; height: 100dvh; width: 100%;
-            overflow: hidden; background-color: #f8fafc;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-            overscroll-behavior: none;
-        }
+        html, body { height: 100%; height: 100dvh; width: 100%; overflow: hidden; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
         body { display: flex; flex-direction: column; }
-
-        /* Page Animations */
         .page-section { display: none; flex: 1; flex-direction: column; overflow: hidden; height: 100%; }
         .page-section.active { display: flex; animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn { from { opacity: 0.95; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Scrollbars */
         .custom-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-
-        /* Sticky Columns */
         .sticky-col { position: sticky; left: 0; background: white; z-index: 10; box-shadow: 2px 0 5px -2px rgba(0,0,0,0.1); }
         th.sticky-col { z-index: 20; }
-
-        /* Status Colors */
         .status-0 { background-color: #f8fafc; color: #94a3b8; }
         .status-1 { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
         .status-2 { background-color: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
         .status-3 { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-
-        /* Nav Active State */
         .nav-btn.active { color: #2563eb; }
         .nav-btn.active .icon-container { background-color: #eff6ff; }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
+        
+        /* Loading Spinner */
+        .spinner { border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top: 3px solid #3b82f6; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -65,7 +48,10 @@
     <section id="page-home" class="page-section active">
         <header class="bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center shadow-sm shrink-0 z-30">
             <div class="flex flex-col cursor-pointer" onclick="toggleGroupDropdown()">
-                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Active Group</span>
+                <div class="flex items-center gap-1">
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Active Group</span>
+                    <span id="syncStatus" class="w-2 h-2 rounded-full bg-gray-300"></span>
+                </div>
                 <div class="flex items-center gap-2">
                     <h1 id="headerGroupName" class="text-lg font-bold text-slate-800 truncate max-w-[150px]">Loading...</h1>
                     <i class="fas fa-chevron-down text-xs text-slate-400"></i>
@@ -120,16 +106,14 @@
 
     <!-- PAGE 4: TOOLS -->
     <section id="page-tools" class="page-section">
-        <header class="bg-white border-b border-slate-200 px-4 py-4 shadow-sm shrink-0"><h1 class="text-xl font-bold text-slate-800">Tools</h1><p class="text-xs text-slate-500">Backup and Restore</p></header>
+        <header class="bg-white border-b border-slate-200 px-4 py-4 shadow-sm shrink-0"><h1 class="text-xl font-bold text-slate-800">Tools</h1><p class="text-xs text-slate-500">Settings & Backup</p></header>
         <div class="p-4 space-y-4 flex-1 overflow-y-auto pb-24">
             
-            <!-- Install App Banner (Only shows if installable) -->
-            <div id="installAppContainer" class="hidden bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-5 shadow-lg text-white mb-4">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"><i class="fas fa-download text-lg"></i></div>
-                    <div><h3 class="font-bold">Install App</h3><p class="text-xs opacity-90">Add to Home Screen for fullscreen</p></div>
-                </div>
-                <button id="installBtn" class="w-full py-2 bg-white text-blue-600 rounded-lg text-sm font-bold shadow-sm">Install Now</button>
+            <!-- GitHub Sync Settings -->
+            <div class="bg-slate-800 rounded-xl p-5 shadow-lg text-white">
+                <div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"><i class="fab fa-github text-xl"></i></div><div><h3 class="font-bold">Cloud Sync (GitHub)</h3><p class="text-xs opacity-70">Connect to save data online</p></div></div>
+                <button onclick="openGitHubModal()" class="w-full py-2 bg-white text-slate-900 rounded-lg text-sm font-bold shadow-sm flex items-center justify-center gap-2"><i class="fas fa-cog"></i> Configure GitHub</button>
+                <div id="ghStatusText" class="mt-2 text-[10px] text-center opacity-50 uppercase tracking-widest">Not Connected</div>
             </div>
 
             <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
@@ -168,6 +152,28 @@
     </nav>
 
     <!-- MODALS -->
+    
+    <!-- GitHub Config Modal -->
+    <div id="githubModal" class="fixed inset-0 bg-black/50 z-[120] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
+            <div class="bg-slate-900 text-white p-4 border-b border-slate-800 flex justify-between items-center">
+                <div class="flex items-center gap-2"><i class="fab fa-github text-xl"></i><h3 class="font-bold text-lg">GitHub Sync</h3></div>
+                <button onclick="closeModal('githubModal')" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-5 space-y-3">
+                <p class="text-xs text-slate-500 mb-2">Enter details to sync data.json to your private repo.</p>
+                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Username</label><input type="text" id="ghUser" placeholder="e.g. johndoe" class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
+                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Repository</label><input type="text" id="ghRepo" placeholder="e.g. my-tracker" class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
+                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Personal Access Token</label><input type="password" id="ghToken" placeholder="ghp_..." class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
+                <div class="text-[10px] text-slate-400">Token must have 'repo' scope.</div>
+            </div>
+            <div class="p-4 bg-slate-50 border-t flex justify-end gap-2">
+                <button onclick="closeModal('githubModal')" class="px-4 py-2 text-slate-600 font-bold text-sm">Cancel</button>
+                <button onclick="saveGithubConfig()" class="px-4 py-2 bg-slate-900 text-white rounded-lg font-bold text-sm shadow">Connect</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Edit Person -->
     <div id="editModal" class="fixed inset-0 bg-black/50 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
@@ -225,50 +231,131 @@
     </div>
 
     <script>
-        // --- SERVICE WORKER REGISTRATION (REQUIRED FOR PWA) ---
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').then(reg => {
-                    console.log('ServiceWorker registration successful with scope: ', reg.scope);
-                }, err => {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
-            });
-        }
+        // --- SERVICE WORKER REGISTRATION ---
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js')); }
 
         // --- APP STATE ---
         const STORAGE_KEY = 'monthly_tracker_v7';
+        const GH_CONFIG_KEY = 'tracker_gh_config';
         const DEFAULT_COLS = ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];
         
         let app = { groups: [], activeGroupId: null, currentPage: 'home' };
-        let deferredPrompt;
+        let ghConfig = null;
+        let isSyncing = false;
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadData();
+            // Load GH config first
+            const gh = localStorage.getItem(GH_CONFIG_KEY);
+            if(gh) ghConfig = JSON.parse(gh);
+            updateSyncStatus();
+            
+            // Try load from Cloud first if configured
+            if(ghConfig) loadFromGitHub();
+            else loadData(); // Fallback local
+            
             navTo('home');
-
-            // PWA Install Logic
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                deferredPrompt = e;
-                // If you want to show the custom install button, you can uncomment this:
-                // document.getElementById('installAppContainer').classList.remove('hidden');
-            });
-
-            // If you have a custom install button, add listener:
-            if (document.getElementById('installBtn')) {
-                document.getElementById('installBtn').addEventListener('click', async () => {
-                    if (deferredPrompt) {
-                        deferredPrompt.prompt();
-                        const { outcome } = await deferredPrompt.userChoice;
-                        if (outcome === 'accepted') {
-                            document.getElementById('installAppContainer').classList.add('hidden');
-                        }
-                        deferredPrompt = null;
-                    }
-                });
-            }
         });
+
+        // --- GITHUB SYNC LOGIC ---
+        function updateSyncStatus() {
+            const status = document.getElementById('syncStatus');
+            const txt = document.getElementById('ghStatusText');
+            if(!status) return;
+            
+            if(isSyncing) {
+                status.className = "w-2 h-2 rounded-full bg-blue-500 animate-pulse";
+                if(txt) txt.textContent = "SYNCING...";
+            } else if(ghConfig) {
+                status.className = "w-2 h-2 rounded-full bg-green-500";
+                if(txt) txt.textContent = "CONNECTED: " + ghConfig.repo;
+            } else {
+                status.className = "w-2 h-2 rounded-full bg-gray-300";
+                if(txt) txt.textContent = "NOT CONNECTED";
+            }
+        }
+
+        async function loadFromGitHub() {
+            if(!ghConfig) return;
+            isSyncing = true; updateSyncStatus();
+            try {
+                const url = `https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/data.json`;
+                const res = await fetch(url, {
+                    headers: { 'Authorization': `token ${ghConfig.token}`, 'Accept': 'application/vnd.github.v3+json' }
+                });
+                
+                if(res.ok) {
+                    const json = await res.json();
+                    const content = atob(json.content); // Decode Base64
+                    app = JSON.parse(content);
+                    ghConfig.sha = json.sha; // Store SHA for updates
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(app)); // Update local cache
+                    renderTable(); renderGroupsList(); // Refresh UI
+                } else if(res.status === 404) {
+                    console.log("File not found, will create on save.");
+                }
+            } catch(e) { console.error("GH Load Error", e); }
+            isSyncing = false; updateSyncStatus();
+        }
+
+        async function saveToGitHub() {
+            if(!ghConfig) return;
+            isSyncing = true; updateSyncStatus();
+            
+            // Debounce or immediate? Immediate for now.
+            try {
+                const content = btoa(JSON.stringify(app, null, 2)); // Encode Base64
+                const url = `https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/data.json`;
+                
+                const body = {
+                    message: "Update tracker data",
+                    content: content,
+                    sha: ghConfig.sha 
+                };
+
+                const res = await fetch(url, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `token ${ghConfig.token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if(res.ok) {
+                    const json = await res.json();
+                    ghConfig.sha = json.content.sha; // Update SHA
+                } else {
+                    console.error("Save Failed", await res.text());
+                    // If conflict (409), we should reload SHA, but simple logic for now
+                    if(res.status === 409) {
+                        await loadFromGitHub(); // Re-fetch to get new SHA and data
+                        await saveToGitHub(); // Retry? Careful of loops. Ideally prompt user.
+                    }
+                }
+            } catch(e) { console.error("GH Save Error", e); }
+            isSyncing = false; updateSyncStatus();
+        }
+
+        function openGitHubModal() {
+            document.getElementById('githubModal').classList.remove('hidden');
+            if(ghConfig) {
+                document.getElementById('ghUser').value = ghConfig.user;
+                document.getElementById('ghRepo').value = ghConfig.repo;
+                document.getElementById('ghToken').value = ghConfig.token;
+            }
+        }
+
+        function saveGithubConfig() {
+            const user = document.getElementById('ghUser').value.trim();
+            const repo = document.getElementById('ghRepo').value.trim();
+            const token = document.getElementById('ghToken').value.trim();
+            
+            if(user && repo && token) {
+                ghConfig = { user, repo, token, sha: null };
+                localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
+                loadFromGitHub(); // Initial Sync
+                closeModal('githubModal');
+            } else {
+                alert("All fields required");
+            }
+        }
 
         // --- NAVIGATION ---
         function navTo(pageId) {
@@ -293,7 +380,11 @@
             updateHeaderGroup();
         }
 
-        function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(app)); updateHeaderGroup(); }
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(app));
+            updateHeaderGroup();
+            saveToGitHub(); // Trigger Cloud Save
+        }
 
         function resetData() {
             const defId = crypto.randomUUID();
