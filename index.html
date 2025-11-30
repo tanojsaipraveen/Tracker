@@ -5,14 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Monthly Tracker</title>
     
-    <!-- PWA Settings -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="white">
-    <meta name="theme-color" content="#ffffff">
-    
-    <!-- Link to the external manifest file -->
+    <!-- PWA Settings (Android/Chrome) -->
     <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- PWA Settings (iOS/Safari - CRITICAL for fullscreen) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Tracker">
     <link rel="apple-touch-icon" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/table-list.svg">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -24,6 +25,7 @@
             overflow: hidden; background-color: #f8fafc;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             -webkit-tap-highlight-color: transparent;
+            overscroll-behavior: none; /* Prevents pull-to-refresh on mobile */
         }
         body { display: flex; flex-direction: column; }
 
@@ -121,15 +123,6 @@
         <header class="bg-white border-b border-slate-200 px-4 py-4 shadow-sm shrink-0"><h1 class="text-xl font-bold text-slate-800">Tools</h1><p class="text-xs text-slate-500">Backup and Restore</p></header>
         <div class="p-4 space-y-4 flex-1 overflow-y-auto pb-24">
             
-            <!-- Install App Banner (Hidden by default, shown if installable) -->
-            <div id="installAppContainer" class="hidden bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-5 shadow-lg text-white mb-4">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"><i class="fas fa-download text-lg"></i></div>
-                    <div><h3 class="font-bold">Install App</h3><p class="text-xs opacity-90">Add to Home Screen for fullscreen</p></div>
-                </div>
-                <button id="installBtn" class="w-full py-2 bg-white text-blue-600 rounded-lg text-sm font-bold shadow-sm">Install Now</button>
-            </div>
-
             <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                 <div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><i class="fas fa-file-export"></i></div><div><h3 class="font-bold text-slate-800">Export Data</h3><p class="text-xs text-slate-500">Save current group</p></div></div>
                 <div class="grid grid-cols-2 gap-2">
@@ -249,18 +242,7 @@
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 deferredPrompt = e;
-                document.getElementById('installAppContainer').classList.remove('hidden');
-            });
-
-            document.getElementById('installBtn').addEventListener('click', async () => {
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    const { outcome } = await deferredPrompt.userChoice;
-                    if (outcome === 'accepted') {
-                        document.getElementById('installAppContainer').classList.add('hidden');
-                    }
-                    deferredPrompt = null;
-                }
+                // Add your custom install button logic here if needed, or rely on browser prompt
             });
         });
 
@@ -484,25 +466,7 @@
         }
         function triggerPersonalWa() { const ph = document.getElementById('waPersonalPhone').value; const msg = document.getElementById('waPersonalMsg').value; window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`, '_blank'); closeModal('waPersonalModal'); }
 
-        // --- GROUPS MODAL ---
-        function openGroupModal(mode, id=null) {
-            const m = document.getElementById('groupModal');
-            document.getElementById('groupModalTitle').textContent = mode==='add' ? "Add Group" : "Edit Group";
-            document.getElementById('groupNameInput').value = mode==='add' ? "" : app.groups.find(g=>g.id===id).name;
-            document.getElementById('groupIdInput').value = mode==='add' ? "" : id;
-            document.getElementById('btnDeleteGroup').classList.toggle('hidden', mode==='add' || app.groups.length <= 1);
-            m.classList.remove('hidden');
-        }
-        function openGroupSettings() { openGroupModal('edit', getActiveGroup().id); }
-        function saveGroup() {
-            const name = document.getElementById('groupNameInput').value.trim(); const id = document.getElementById('groupIdInput').value;
-            if(!name) return;
-            if(id) { app.groups.find(g=>g.id===id).name = name; }
-            else { const nid=crypto.randomUUID(); app.groups.push({id:nid, name:name, columns:DEFAULT_COLS.map(n=>({id:crypto.randomUUID(), name:n})), people:[]}); app.activeGroupId=nid; }
-            saveData(); renderGroupsList(); closeModal('groupModal'); updateHeaderGroup();
-        }
-
-        // --- UTILS ---
+        // --- IMPORT/EXPORT ---
         function exportAction(type) {
             const g = getActiveGroup();
             let csv = "Name,Details," + g.columns.map(c=>c.name).join(",") + "\n";
@@ -535,4 +499,5 @@
     </script>
 </body>
 </html>
+
 
