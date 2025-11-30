@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Monthly Tracker (Auto Sync)</title>
+    <title>Monthly Tracker (Auto Sync Fixed)</title>
     
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
@@ -76,9 +76,7 @@
             </div>
             <div id="groupDropdown" class="absolute top-14 left-4 bg-white border border-slate-200 shadow-xl rounded-xl w-64 hidden z-50 p-2 space-y-1"></div>
             <div class="flex gap-2">
-                <!-- View Mode Badge -->
                 <div id="readOnlyBadge" class="hidden px-2 py-1 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded border border-slate-200 flex items-center">Viewer</div>
-                
                 <button onclick="openGroupWhatsAppModal()" class="w-9 h-9 rounded-full bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition shadow-sm"><i class="fab fa-whatsapp text-lg"></i></button>
                 <button onclick="addNewRow()" class="edit-control px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium shadow hover:bg-blue-700 transition flex items-center gap-1"><i class="fas fa-plus"></i> Add</button>
             </div>
@@ -87,7 +85,11 @@
             <div class="relative"><i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i><input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search names..." class="w-full pl-9 p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"></div>
         </div>
         <div class="flex-1 overflow-auto custom-scroll relative bg-white pb-24">
-            <div onclick="loadFromGitHub()" class="text-center text-xs text-slate-400 py-2 cursor-pointer active:text-blue-500"><i class="fas fa-sync-alt mr-1"></i> Tap to refresh data</div>
+            <!-- Refresh Button -->
+            <div onclick="loadFromGitHub()" id="refreshBtn" class="text-center text-xs text-slate-400 py-2 cursor-pointer active:text-blue-500 bg-slate-50 border-b border-slate-100">
+                <i class="fas fa-sync-alt mr-1"></i> Tap to refresh data
+            </div>
+            
             <table class="w-full text-left border-collapse min-w-max">
                 <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-bold sticky top-0 z-20 shadow-sm"><tr id="tableHeaderRow"></tr></thead>
                 <tbody id="trackerBody" class="text-sm"></tbody>
@@ -131,7 +133,6 @@
         <header class="bg-white border-b border-slate-200 px-4 py-4 shadow-sm shrink-0"><h1 class="text-xl font-bold text-slate-800">Tools</h1><p class="text-xs text-slate-500">Settings & Backup</p></header>
         <div class="p-4 space-y-4 flex-1 overflow-y-auto pb-24">
             
-            <!-- Admin/GitHub Config -->
             <div class="bg-slate-800 text-white rounded-xl p-5 shadow-lg">
                 <div class="flex items-center gap-3 mb-3">
                     <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"><i class="fas fa-user-shield text-xl"></i></div>
@@ -151,7 +152,6 @@
                 </div>
             </div>
 
-            <!-- Dangerous controls hidden in Read Only -->
             <div class="edit-control bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                 <div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="fas fa-file-import"></i></div><div><h3 class="font-bold text-slate-800">Import Data</h3><p class="text-xs text-slate-500">Load CSV file</p></div></div>
                 <button onclick="document.getElementById('importInput').click()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm">Select CSV</button>
@@ -190,8 +190,6 @@
                 <p class="text-xs text-slate-500 mb-2">Default public repository is set. Enter token to enable editing.</p>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Username</label><input type="text" id="ghUser" class="w-full p-2 bg-slate-50 border rounded-lg text-sm" value="tanojsaipraveen"></div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Repository Name</label><input type="text" id="ghRepo" class="w-full p-2 bg-slate-50 border rounded-lg text-sm" value="Tracker"></div>
-                
-                <!-- Token Field -->
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Admin Token (Optional)</label><input type="password" id="ghToken" placeholder="Paste GitHub Token here to Edit" class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
                 <div class="p-2 bg-blue-50 rounded border border-blue-100 text-[10px] text-blue-700">
                     <i class="fas fa-lock"></i> <b>Viewers:</b> Leave token empty.<br><b>Admins:</b> Paste token to enable editing.
@@ -303,6 +301,13 @@
         function updateSyncStatus() {
             const ind = document.getElementById('syncStatus');
             const txt = document.getElementById('ghStatusText');
+            const refreshBtn = document.getElementById('refreshBtn');
+            
+            // Update refresh button text
+            if(refreshBtn) {
+                 if(isSyncing) refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Syncing...';
+                 else refreshBtn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Tap to refresh data';
+            }
             
             if (isSyncing) {
                 ind.className = "w-2 h-2 rounded-full bg-blue-500 animate-pulse";
@@ -333,14 +338,15 @@
         async function loadFromGitHub() {
             isSyncing = true; updateSyncStatus();
             
-            // IMPORTANT: If token exists, use it. If not, don't send Auth header at all for public repos.
-            const headers = { 'Accept': 'application/vnd.github.v3+json' };
-            if (ghConfig.token) {
-                headers['Authorization'] = `token ${ghConfig.token}`;
-            }
+            // IMPORTANT: Cache-busting (?t=...) ensures fresh data
+            // No token in header for Read Only mode (Public Repo)
+            const headers = { 'Accept': 'application/vnd.github.v3+json', 'cache-control': 'no-cache' };
+            if (ghConfig.token) headers['Authorization'] = `token ${ghConfig.token}`;
+            
+            const url = `https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/data.json?t=${Date.now()}`;
 
             try {
-                const res = await fetch(`https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/data.json`, { headers });
+                const res = await fetch(url, { headers });
                 
                 if(res.ok) {
                     const json = await res.json();
@@ -350,19 +356,20 @@
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(app));
                     localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
                     
-                    // Safety check for active group
                     if (!app.groups.find(g => g.id === app.activeGroupId) && app.groups.length > 0) {
                         app.activeGroupId = app.groups[0].id;
                     }
                     
                     updateHeaderGroup(); renderTable(); renderGroupsList(); renderColumnManager();
+                } else {
+                    console.log("Sync Failed/Not Found");
                 }
             } catch(e) { 
-                console.log("Offline or Error:", e);
-                // Fallback to local storage if fetch fails
+                console.log("Offline/Error:", e);
+                // Fallback local
                 const local = localStorage.getItem(STORAGE_KEY);
                 if(local) app = JSON.parse(local);
-                updateHeaderGroup(); renderTable();
+                renderTable();
             }
             isSyncing = false; updateSyncStatus();
         }
@@ -373,7 +380,7 @@
             isSyncing = true; updateSyncStatus();
             try {
                 const content = btoa(unescape(encodeURIComponent(JSON.stringify(app))));
-                const body = { message: "Update data via App", content: content, sha: ghConfig.sha };
+                const body = { message: "Update data", content: content, sha: ghConfig.sha };
                 
                 const res = await fetch(`https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/data.json`, {
                     method: 'PUT',
@@ -387,17 +394,21 @@
                     localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
                 } else if(res.status === 409) {
                     await loadFromGitHub(); await saveToGitHub(); // Conflict -> Pull -> Push
+                } else {
+                    alert("Save Failed! Check permissions.");
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) { alert("Network Error: Could not save."); console.error(e); }
             isSyncing = false; updateSyncStatus();
         }
 
         // --- SETTINGS UI ---
         function openGitHubModal() {
             document.getElementById('githubModal').classList.remove('hidden');
-            document.getElementById('ghUser').value = ghConfig.user || DEFAULT_GH_USER;
-            document.getElementById('ghRepo').value = ghConfig.repo || DEFAULT_GH_REPO;
-            document.getElementById('ghToken').value = ghConfig.token || '';
+            if(ghConfig) {
+                document.getElementById('ghUser').value = ghConfig.user || DEFAULT_GH_USER;
+                document.getElementById('ghRepo').value = ghConfig.repo || DEFAULT_GH_REPO;
+                document.getElementById('ghToken').value = ghConfig.token || '';
+            }
         }
 
         function saveGithubConfig() {
@@ -406,6 +417,7 @@
             const token = document.getElementById('ghToken').value.trim();
             
             if(user && repo) {
+                // Empty token = Read Only
                 const isReadOnly = (token === "");
                 ghConfig = { user, repo, token, sha: null, readOnly: isReadOnly };
                 localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
@@ -426,11 +438,28 @@
             if(pageId === 'columns') renderColumnManager();
         }
 
-        // --- CORE LOGIC (SAVE/UPDATE) ---
+        // --- DATA MANAGEMENT ---
+        function loadData() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                app = JSON.parse(stored);
+                if (!app.groups || app.groups.length === 0) resetData();
+                else if (!app.groups.find(g => g.id === app.activeGroupId)) app.activeGroupId = app.groups[0].id;
+            } else resetData();
+            updateHeaderGroup();
+        }
+
         function saveData() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(app));
             updateHeaderGroup();
             saveToGitHub();
+        }
+
+        function resetData() {
+            const defId = crypto.randomUUID();
+            app.groups = [{ id: defId, name: "Default Group", columns: DEFAULT_COLS.map(n => ({ id: crypto.randomUUID(), name: n })), people: [] }];
+            app.activeGroupId = defId;
+            saveData();
         }
 
         function getActiveGroup() { return app.groups.find(g => g.id === app.activeGroupId); }
@@ -459,7 +488,6 @@
             const empty = document.getElementById('emptyState');
             const filter = document.getElementById('searchInput').value.toLowerCase();
 
-            // Check if group exists (handles new load)
             if (!g) return;
 
             thead.innerHTML = `<th class="p-3 border-b border-r border-slate-200 sticky-col min-w-[140px] bg-slate-50">Name</th>`;
@@ -560,7 +588,6 @@
         function openEditModal(id) { 
             editId = id; const p = getActiveGroup().people.find(x => x.id === id); 
             document.getElementById('modalTitle').textContent = "Edit Person"; document.getElementById('editName').value = p.name; document.getElementById('editDetails').value = p.details; 
-            // If Read Only, disable inputs
             const disabled = ghConfig.readOnly;
             document.getElementById('editName').disabled = disabled;
             document.getElementById('editDetails').disabled = disabled;
