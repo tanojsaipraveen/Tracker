@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Tracker V8.1 (Read Only)</title>
+    <title>Monthly Tracker (Public Sync)</title>
     
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
@@ -25,28 +25,36 @@
         }
         body { display: flex; flex-direction: column; }
 
-        /* Animations & Layout */
+        /* Animations */
         .page-section { display: none; flex: 1; flex-direction: column; overflow: hidden; height: 100%; }
         .page-section.active { display: flex; animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn { from { opacity: 0.95; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* Scrollbars */
         .custom-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+
+        /* Sticky Columns */
         .sticky-col { position: sticky; left: 0; background: white; z-index: 10; box-shadow: 2px 0 5px -2px rgba(0,0,0,0.1); }
         th.sticky-col { z-index: 20; }
 
-        /* Colors */
+        /* Status Colors */
         .status-0 { background-color: #f8fafc; color: #94a3b8; }
         .status-1 { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
         .status-2 { background-color: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
         .status-3 { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+        /* Nav Active State */
         .nav-btn.active { color: #2563eb; }
         .nav-btn.active .icon-container { background-color: #eff6ff; }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
 
-        /* READ ONLY UTILS */
+        /* Read Only Utilities */
         body.read-only .edit-control { display: none !important; }
-        body.read-only .status-btn { pointer-events: none; }
-        body.read-only .sticky-col { background-color: #f8fafc; } /* Slight grey to indicate readonly */
+        body.read-only .status-btn { pointer-events: none; opacity: 0.9; }
+        body.read-only .sticky-col { background-color: #f8fafc; }
     </style>
 </head>
 <body>
@@ -68,7 +76,7 @@
             </div>
             <div id="groupDropdown" class="absolute top-14 left-4 bg-white border border-slate-200 shadow-xl rounded-xl w-64 hidden z-50 p-2 space-y-1"></div>
             <div class="flex gap-2">
-                <!-- View Mode Indicator -->
+                <!-- View Mode Badge -->
                 <div id="readOnlyBadge" class="hidden px-2 py-1 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded border border-slate-200 flex items-center">Viewer</div>
                 
                 <button onclick="openGroupWhatsAppModal()" class="w-9 h-9 rounded-full bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-200 transition shadow-sm"><i class="fab fa-whatsapp text-lg"></i></button>
@@ -79,9 +87,7 @@
             <div class="relative"><i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i><input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search names..." class="w-full pl-9 p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"></div>
         </div>
         <div class="flex-1 overflow-auto custom-scroll relative bg-white pb-24">
-            <!-- Pull to refresh hint -->
             <div onclick="loadFromGitHub()" class="text-center text-xs text-slate-400 py-2 cursor-pointer active:text-blue-500"><i class="fas fa-sync-alt mr-1"></i> Tap to refresh data</div>
-            
             <table class="w-full text-left border-collapse min-w-max">
                 <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-bold sticky top-0 z-20 shadow-sm"><tr id="tableHeaderRow"></tr></thead>
                 <tbody id="trackerBody" class="text-sm"></tbody>
@@ -173,7 +179,7 @@
         </button>
     </nav>
 
-    <!-- GitHub Config Modal (UPDATED WITH READ ONLY TOGGLE) -->
+    <!-- GitHub Config Modal -->
     <div id="githubModal" class="fixed inset-0 bg-black/50 z-[120] hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
             <div class="bg-slate-900 text-white p-4 border-b border-slate-800 flex justify-between items-center">
@@ -181,17 +187,15 @@
                 <button onclick="closeModal('githubModal')" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-5 space-y-3">
-                <p class="text-xs text-slate-500 mb-2">Enter details to sync data.json to your repo.</p>
+                <p class="text-xs text-slate-500 mb-2">Sync data to a file named 'data.json'.</p>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Username</label><input type="text" id="ghUser" placeholder="e.g. johndoe" class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Repository Name</label><input type="text" id="ghRepo" placeholder="e.g. my-tracker" class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
-                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Personal Access Token</label><input type="password" id="ghToken" placeholder="ghp_..." class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
                 
-                <!-- READ ONLY TOGGLE -->
-                <div class="flex items-center gap-2 mt-4 pt-2 border-t border-slate-100">
-                    <input type="checkbox" id="ghReadOnly" class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
-                    <label for="ghReadOnly" class="text-sm font-bold text-slate-700">Enable Read-Only Mode (Viewer)</label>
+                <!-- Token Field (Optional) -->
+                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Token (Optional)</label><input type="password" id="ghToken" placeholder="Leave empty for Read-Only" class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
+                <div class="p-2 bg-blue-50 rounded border border-blue-100 text-[10px] text-blue-700">
+                    <i class="fas fa-info-circle"></i> <b>Public Repo:</b> Leave token empty for Read-Only access.<br><b>Private Repo / Editing:</b> Token required.
                 </div>
-                <p class="text-[10px] text-slate-400 leading-tight">If checked, this device will download data but cannot save changes or delete anything.</p>
             </div>
             <div class="p-4 bg-slate-50 border-t flex justify-end gap-2">
                 <button onclick="closeModal('githubModal')" class="px-4 py-2 text-slate-600 font-bold text-sm">Cancel</button>
@@ -200,7 +204,6 @@
         </div>
     </div>
 
-    <!-- (Other Modals: Edit, WhatsApp Group, Personal WA, Confirm, Group) SAME AS BEFORE -->
     <!-- Edit Person -->
     <div id="editModal" class="fixed inset-0 bg-black/50 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
@@ -252,7 +255,7 @@
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-xs p-6 text-center"><i class="fas fa-exclamation-triangle text-3xl text-red-500 mb-3"></i><h3 id="confirmTitle" class="font-bold text-slate-800 text-lg">Confirm</h3><p id="confirmMessage" class="text-sm text-slate-500 my-2">Are you sure?</p><div class="flex justify-center gap-3 mt-4"><button onclick="closeConfirmModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-bold">No</button><button id="confirmBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold shadow-lg shadow-red-200">Yes</button></div></div>
     </div>
 
-    <!-- Group/Rename Modal -->
+    <!-- Group/Rename Modal (Shared) -->
     <div id="groupModal" class="fixed inset-0 bg-black/50 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"><div class="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center"><h3 id="groupModalTitle" class="font-bold text-lg text-slate-800">Group</h3><button onclick="closeModal('groupModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button></div><div class="p-6"><input type="hidden" id="groupIdInput"><label class="block text-xs font-bold text-slate-400 uppercase mb-1">Name</label><input type="text" id="groupNameInput" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"></div><div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2"><button id="btnDeleteGroup" onclick="deleteGroup()" class="edit-control mr-auto text-red-500 hover:text-red-700 text-xs font-bold uppercase hidden">Delete</button><button onclick="closeModal('groupModal')" class="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg text-sm font-bold">Cancel</button><button onclick="saveGroup()" class="edit-control px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg shadow font-bold text-sm">Save</button></div></div>
     </div>
@@ -268,18 +271,11 @@
         let isSyncing = false;
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Load config
             const gh = localStorage.getItem(GH_CONFIG_KEY);
             if(gh) ghConfig = JSON.parse(gh);
             updateSyncStatus();
-            applyReadOnlyMode();
-
-            // Auto Sync on Load/Focus
             if(ghConfig) loadFromGitHub();
             else loadData();
-            
-            window.addEventListener('focus', () => { if(ghConfig) loadFromGitHub(); });
-
             navTo('home');
         });
 
@@ -301,7 +297,8 @@
         }
 
         function applyReadOnlyMode() {
-            if(ghConfig && ghConfig.readOnly) {
+            const isReadOnly = ghConfig && ghConfig.readOnly;
+            if(isReadOnly) {
                 document.body.classList.add('read-only');
                 document.getElementById('readOnlyBadge').classList.remove('hidden');
                 document.getElementById('readOnlyMsg').classList.remove('hidden');
@@ -316,9 +313,13 @@
             if(!ghConfig) return;
             isSyncing = true; updateSyncStatus();
             try {
-                const res = await fetch(`https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/data.json`, {
-                    headers: { 'Authorization': `token ${ghConfig.token}`, 'Accept': 'application/vnd.github.v3+json' }
-                });
+                // For public repos, if no token is provided, we still access via API.
+                // The headers object needs to be careful not to send "Authorization: token " (empty).
+                const headers = { 'Accept': 'application/vnd.github.v3+json' };
+                if(ghConfig.token) headers['Authorization'] = `token ${ghConfig.token}`;
+
+                const res = await fetch(`https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/data.json`, { headers });
+                
                 if(res.ok) {
                     const json = await res.json();
                     const content = decodeURIComponent(escape(atob(json.content)));
@@ -334,7 +335,7 @@
 
         async function saveToGitHub() {
             if(!ghConfig) return;
-            if(ghConfig.readOnly) { console.log("Read Only Mode: Save Blocked"); return; }
+            if(ghConfig.readOnly) return; // Explicit client-side block
 
             isSyncing = true; updateSyncStatus();
             try {
@@ -350,7 +351,7 @@
                     ghConfig.sha = json.content.sha;
                     localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
                 } else if(res.status === 409) {
-                    await loadFromGitHub(); await saveToGitHub(); // Conflict resolution
+                    await loadFromGitHub(); await saveToGitHub(); 
                 }
             } catch(e) { console.error(e); }
             isSyncing = false; updateSyncStatus();
@@ -361,8 +362,7 @@
             if(ghConfig) {
                 document.getElementById('ghUser').value = ghConfig.user;
                 document.getElementById('ghRepo').value = ghConfig.repo;
-                document.getElementById('ghToken').value = ghConfig.token;
-                document.getElementById('ghReadOnly').checked = ghConfig.readOnly || false;
+                document.getElementById('ghToken').value = ghConfig.token || '';
             }
         }
 
@@ -370,14 +370,15 @@
             const user = document.getElementById('ghUser').value.trim();
             const repo = document.getElementById('ghRepo').value.trim();
             const token = document.getElementById('ghToken').value.trim();
-            const readOnly = document.getElementById('ghReadOnly').checked;
             
-            if(user && repo && token) {
-                ghConfig = { user, repo, token, sha: null, readOnly: readOnly };
+            if(user && repo) {
+                // If token is empty, assume Read Only mode automatically
+                const isReadOnly = token === "";
+                ghConfig = { user, repo, token, sha: null, readOnly: isReadOnly };
                 localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
                 closeModal('githubModal');
                 loadFromGitHub();
-            } else alert("Fill all fields");
+            } else alert("Username and Repository are required.");
         }
 
         // --- NAVIGATION ---
@@ -434,7 +435,6 @@
             } else dd.classList.add('hidden');
         }
 
-        // --- RENDER TABLE (Updated with ReadOnly Checks) ---
         function renderTable() {
             const g = getActiveGroup();
             const tbody = document.getElementById('trackerBody');
@@ -556,7 +556,7 @@
             showConfirmModal("Delete Person", "Are you sure?", () => { const g = getActiveGroup(); g.people = g.people.filter(p => p.id !== id); saveData(); renderTable(); }); 
         }
 
-        // --- WHATSAPP (Same as before) ---
+        // --- WHATSAPP & EXPORT (Same as before) ---
         function openGroupWhatsAppModal() {
             const g = getActiveGroup();
             const colSel = document.getElementById('waColumn'); colSel.innerHTML = '<option value="all">All Columns</option>'; g.columns.forEach(c => { const opt = document.createElement('option'); opt.value = c.id; opt.text = c.name; colSel.appendChild(opt); });
@@ -580,8 +580,6 @@
         function sendGroupWhatsApp() { const msg = document.getElementById('waGroupMessage').value; if(!msg.trim()) return alert("Message empty"); window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank'); closeModal('whatsappGroupModal'); }
         function sendPersonalWhatsApp() { const d = document.getElementById('editDetails').value; const m = d.match(/[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}/); if(m) { const ph = m[0].replace(/\D/g, ''); document.getElementById('waTargetText').textContent = "To: " + document.getElementById('editName').value; document.getElementById('waPersonalPhone').value = ph; document.getElementById('waPersonalModal').classList.remove('hidden'); } else alert("No phone number"); }
         function triggerPersonalWa() { const ph = document.getElementById('waPersonalPhone').value; const msg = document.getElementById('waPersonalMsg').value; window.open(`https://wa.me/${ph}?text=${encodeURIComponent(msg)}`, '_blank'); closeModal('waPersonalModal'); }
-
-        // --- UTILS ---
         function exportAction(type) { const g = getActiveGroup(); let csv = "Name,Details," + g.columns.map(c=>c.name).join(",") + "\n"; g.people.forEach(p => { const ms = v => v===1?"Done":v===2?"Pending":v===3?"Issue":""; let r = `"${p.name.replace(/"/g,'""')}","${p.details.replace(/"/g,'""')}"`; g.columns.forEach(c => r += `,${ms(p.months[c.id])}`); csv += r + "\n"; }); if(type==='email') window.location.href = `mailto:?subject=${encodeURIComponent(g.name)}&body=${encodeURIComponent(csv)}`; else if(type==='clipboard') navigator.clipboard.writeText(csv).then(()=>alert("Copied!")); else { const a = document.createElement("a"); a.href = encodeURI("data:text/csv;charset=utf-8," + csv); a.download = g.name + ".csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a); } }
         function importCSV(input) { if(input.files[0]) { const r = new FileReader(); r.onload = e => { const txt = e.target.result; const lines = txt.trim().split(/\r?\n/); if(lines.length<2) return; const parse = l => { const res = []; let m, re = /(?:^|,)(\"(?:[^\"]+|\"\")*\"|[^,]*)/g; while(m=re.exec(l)) { let v = m[1]||m[0]; if(m[0].startsWith(',')) v=m[0].substring(1); res.push(v.startsWith('"')?v.slice(1,-1).replace(/""/g,'"'):v); } return res; }; const h = parse(lines[0]); const g = getActiveGroup(); const map = []; for(let i=2; i<h.length; i++) { const c = g.columns.find(x=>x.name===h[i].trim()); if(c) map.push({idx:i, id:c.id}); else { const nid=crypto.randomUUID(); g.columns.push({id:nid, name:h[i].trim()}); map.push({idx:i, id:nid}); } } const stats = {"Done":1,"Pending":2,"Issue":3}; for(let i=1; i<lines.length; i++) { const r = parse(lines[i]); if(r.length<2 || r[0]==='Name') continue; const nid = crypto.randomUUID(); const mo = {}; g.columns.forEach(c => mo[c.id] = 0); const p = { id: nid, name: r[0], details: r[1], months: mo }; map.forEach(m => { if(stats[r[m.idx]]) p.months[m.id] = stats[r[m.idx]]; }); g.people.push(p); } saveData(); renderTable(); }; r.readAsText(input.files[0]); input.value=''; } }
         let confirmCb = null; function showConfirmModal(t,m,cb) { document.getElementById('confirmTitle').textContent=t; document.getElementById('confirmMessage').textContent=m; confirmCb=cb; document.getElementById('confirmModal').classList.remove('hidden'); } function closeConfirmModal() { document.getElementById('confirmModal').classList.add('hidden'); } document.getElementById('confirmBtn').onclick = () => { if(confirmCb) confirmCb(); closeConfirmModal(); }; function confirmClearAll() { showConfirmModal("Reset All", "Delete all data?", () => { localStorage.removeItem(STORAGE_KEY); loadData(); navTo('home'); }); } function closeModal(id) { document.getElementById(id).classList.add('hidden'); } function filterTable() { renderTable(); }
