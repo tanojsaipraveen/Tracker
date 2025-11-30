@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Monthly Tracker (Auto Sync Fixed)</title>
+    <title>Monthly Tracker (Fixed Sync)</title>
     
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
@@ -16,45 +16,25 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* Base Styles */
-        html, body {
-            height: 100%; height: 100dvh; width: 100%;
-            overflow: hidden; background-color: #f8fafc;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            -webkit-tap-highlight-color: transparent; overscroll-behavior: none;
-        }
+        html, body { height: 100%; height: 100dvh; width: 100%; overflow: hidden; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { display: flex; flex-direction: column; }
-
-        /* Animations */
         .page-section { display: none; flex: 1; flex-direction: column; overflow: hidden; height: 100%; }
         .page-section.active { display: flex; animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn { from { opacity: 0.95; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Scrollbars */
         .custom-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-
-        /* Sticky Columns */
         .sticky-col { position: sticky; left: 0; background: white; z-index: 10; box-shadow: 2px 0 5px -2px rgba(0,0,0,0.1); }
         th.sticky-col { z-index: 20; }
-
-        /* Status Colors */
         .status-0 { background-color: #f8fafc; color: #94a3b8; }
         .status-1 { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
         .status-2 { background-color: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
         .status-3 { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-
-        /* Nav Active State */
         .nav-btn.active { color: #2563eb; }
         .nav-btn.active .icon-container { background-color: #eff6ff; }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
-
-        /* Read Only Utilities */
+        
+        /* Read Only Utils */
         body.read-only .edit-control { display: none !important; }
         body.read-only .status-btn { pointer-events: none; opacity: 0.9; }
-        body.read-only .sticky-col { background-color: #f8fafc; }
     </style>
 </head>
 <body>
@@ -67,7 +47,7 @@
             <div class="flex flex-col cursor-pointer" onclick="toggleGroupDropdown()">
                 <div class="flex items-center gap-1">
                     <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Group</span>
-                    <span id="syncStatus" class="w-2 h-2 rounded-full bg-slate-300" title="Checking..."></span>
+                    <span id="syncStatus" class="w-2 h-2 rounded-full bg-slate-300" title="Offline"></span>
                 </div>
                 <div class="flex items-center gap-2">
                     <h1 id="headerGroupName" class="text-lg font-bold text-slate-800 truncate max-w-[150px]">Loading...</h1>
@@ -85,11 +65,9 @@
             <div class="relative"><i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i><input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search names..." class="w-full pl-9 p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"></div>
         </div>
         <div class="flex-1 overflow-auto custom-scroll relative bg-white pb-24">
-            <!-- Refresh Button -->
             <div onclick="loadFromGitHub()" id="refreshBtn" class="text-center text-xs text-slate-400 py-2 cursor-pointer active:text-blue-500 bg-slate-50 border-b border-slate-100">
                 <i class="fas fa-sync-alt mr-1"></i> Tap to refresh data
             </div>
-            
             <table class="w-full text-left border-collapse min-w-max">
                 <thead class="bg-slate-50 text-slate-600 text-xs uppercase font-bold sticky top-0 z-20 shadow-sm"><tr id="tableHeaderRow"></tr></thead>
                 <tbody id="trackerBody" class="text-sm"></tbody>
@@ -151,15 +129,6 @@
                     <button onclick="exportAction('download')" class="col-span-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium shadow-sm">Download File</button>
                 </div>
             </div>
-
-            <div class="edit-control bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                <div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="fas fa-file-import"></i></div><div><h3 class="font-bold text-slate-800">Import Data</h3><p class="text-xs text-slate-500">Load CSV file</p></div></div>
-                <button onclick="document.getElementById('importInput').click()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm">Select CSV</button>
-            </div>
-            <div class="edit-control bg-white border border-red-100 rounded-xl p-5 shadow-sm mt-8">
-                <h3 class="font-bold text-red-600 mb-1">Reset Data</h3>
-                <button onclick="confirmClearAll()" class="w-full py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium">Delete Everything</button>
-            </div>
         </div>
     </section>
 
@@ -187,21 +156,15 @@
                 <button onclick="closeModal('githubModal')" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-5 space-y-3">
-                <p class="text-xs text-slate-500 mb-2">Default public repository is set. Enter token to enable editing.</p>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Username</label><input type="text" id="ghUser" class="w-full p-2 bg-slate-50 border rounded-lg text-sm" value="tanojsaipraveen"></div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Repository Name</label><input type="text" id="ghRepo" class="w-full p-2 bg-slate-50 border rounded-lg text-sm" value="Tracker"></div>
-                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Admin Token (Optional)</label><input type="password" id="ghToken" placeholder="Paste GitHub Token here to Edit" class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
-                <div class="p-2 bg-blue-50 rounded border border-blue-100 text-[10px] text-blue-700">
-                    <i class="fas fa-lock"></i> <b>Viewers:</b> Leave token empty.<br><b>Admins:</b> Paste token to enable editing.
-                </div>
-            </div>
-            <div class="p-4 bg-slate-50 border-t flex justify-end gap-2">
-                <button onclick="closeModal('githubModal')" class="px-4 py-2 text-slate-600 font-bold text-sm">Cancel</button>
-                <button onclick="saveGithubConfig()" class="px-4 py-2 bg-slate-900 text-white rounded-lg font-bold text-sm shadow">Save & Connect</button>
+                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Admin Token (Optional)</label><input type="password" id="ghToken" placeholder="Paste GitHub Token to Edit" class="w-full p-2 bg-slate-50 border rounded-lg text-sm"></div>
+                <div class="flex gap-2"><button onclick="testConnection()" class="flex-1 py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold border border-blue-200">Test Connection</button><button onclick="saveGithubConfig()" class="flex-1 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold shadow">Save & Connect</button></div>
             </div>
         </div>
     </div>
 
+    <!-- Edit Person, WA Group, Personal WA, Confirm, Group Modals (Same as previous) -->
     <!-- Edit Person -->
     <div id="editModal" class="fixed inset-0 bg-black/50 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
@@ -260,71 +223,56 @@
 
     <script>
         // --- APP STATE ---
-        const STORAGE_KEY = 'monthly_tracker_v8';
+        const STORAGE_KEY = 'monthly_tracker_v9';
         const GH_CONFIG_KEY = 'tracker_gh_config';
-        
-        // HARDCODED DEFAULTS
-        const DEFAULT_GH_USER = 'tanojsaipraveen';
-        const DEFAULT_GH_REPO = 'Tracker';
         const DEFAULT_COLS = ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];
         
+        // DEFAULT CONFIG
+        const DEFAULT_GH_USER = 'tanojsaipraveen';
+        const DEFAULT_GH_REPO = 'Tracker';
+
         let app = { groups: [], activeGroupId: null, currentPage: 'home' };
         let ghConfig = null;
         let isSyncing = false;
 
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. Initialize Config
             const storedConfig = localStorage.getItem(GH_CONFIG_KEY);
             if (storedConfig) {
                 ghConfig = JSON.parse(storedConfig);
             } else {
-                // DEFAULT CONFIG: No token = Read Only
-                ghConfig = {
-                    user: DEFAULT_GH_USER,
-                    repo: DEFAULT_GH_REPO,
-                    token: '',
-                    sha: null,
-                    readOnly: true
-                };
+                // Set Defaults
+                ghConfig = { user: DEFAULT_GH_USER, repo: DEFAULT_GH_REPO, token: '', sha: null, readOnly: true };
                 localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
             }
-
+            
             updateSyncStatus();
-            loadFromGitHub(); // Auto-Connect on startup
+            loadFromGitHub(); 
             navTo('home');
-
-            // Auto-refresh on focus
-            window.addEventListener('focus', () => { if(ghConfig) loadFromGitHub(); });
+            window.addEventListener('focus', loadFromGitHub);
         });
 
-        // --- SYNC LOGIC ---
         function updateSyncStatus() {
             const ind = document.getElementById('syncStatus');
             const txt = document.getElementById('ghStatusText');
             const refreshBtn = document.getElementById('refreshBtn');
             
-            // Update refresh button text
-            if(refreshBtn) {
-                 if(isSyncing) refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Syncing...';
-                 else refreshBtn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Tap to refresh data';
-            }
-            
             if (isSyncing) {
                 ind.className = "w-2 h-2 rounded-full bg-blue-500 animate-pulse";
                 if(txt) txt.textContent = "Syncing...";
+                if(refreshBtn) refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Syncing...';
             } else if (ghConfig) {
                 const mode = ghConfig.readOnly ? "Viewer Mode" : "Admin Mode";
                 ind.className = ghConfig.readOnly ? "w-2 h-2 rounded-full bg-yellow-500" : "w-2 h-2 rounded-full bg-green-500";
                 if(txt) txt.textContent = mode + " (" + ghConfig.repo + ")";
+                if(refreshBtn) refreshBtn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Tap to refresh data';
             } else {
                 ind.className = "w-2 h-2 rounded-full bg-slate-300";
             }
-            
             applyReadOnlyMode();
         }
 
         function applyReadOnlyMode() {
-            if(ghConfig && ghConfig.readOnly) {
+            if (ghConfig && ghConfig.readOnly) {
                 document.body.classList.add('read-only');
                 document.getElementById('readOnlyBadge').classList.remove('hidden');
                 document.getElementById('readOnlyMsg').classList.remove('hidden');
@@ -337,51 +285,54 @@
 
         async function loadFromGitHub() {
             isSyncing = true; updateSyncStatus();
-            
-            // IMPORTANT: Cache-busting (?t=...) ensures fresh data
-            // No token in header for Read Only mode (Public Repo)
             const headers = { 'Accept': 'application/vnd.github.v3+json', 'cache-control': 'no-cache' };
             if (ghConfig.token) headers['Authorization'] = `token ${ghConfig.token}`;
             
+            // Cache busting param
             const url = `https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/data.json?t=${Date.now()}`;
 
             try {
                 const res = await fetch(url, { headers });
-                
                 if(res.ok) {
                     const json = await res.json();
                     const content = decodeURIComponent(escape(atob(json.content)));
                     app = JSON.parse(content);
-                    ghConfig.sha = json.sha; 
+                    ghConfig.sha = json.sha;
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(app));
                     localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
                     
                     if (!app.groups.find(g => g.id === app.activeGroupId) && app.groups.length > 0) {
                         app.activeGroupId = app.groups[0].id;
                     }
-                    
                     updateHeaderGroup(); renderTable(); renderGroupsList(); renderColumnManager();
-                } else {
-                    console.log("Sync Failed/Not Found");
+                } else if (res.status === 404) {
+                    console.log("File not found. If Admin, save will create it.");
+                    if(!localStorage.getItem(STORAGE_KEY)) resetData();
                 }
-            } catch(e) { 
-                console.log("Offline/Error:", e);
-                // Fallback local
-                const local = localStorage.getItem(STORAGE_KEY);
-                if(local) app = JSON.parse(local);
-                renderTable();
-            }
+            } catch(e) { console.log(e); loadData(); }
             isSyncing = false; updateSyncStatus();
         }
 
         async function saveToGitHub() {
             if(!ghConfig || ghConfig.readOnly) return;
-
             isSyncing = true; updateSyncStatus();
+            
             try {
-                const content = btoa(unescape(encodeURIComponent(JSON.stringify(app))));
-                const body = { message: "Update data", content: content, sha: ghConfig.sha };
+                // 1. GET latest SHA (critical)
+                const headers = { 'Authorization': `token ${ghConfig.token}`, 'Accept': 'application/vnd.github.v3+json', 'cache-control': 'no-cache' };
+                const getRes = await fetch(`https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/data.json?t=${Date.now()}`, { headers });
                 
+                let currentSha = ghConfig.sha;
+                if (getRes.ok) {
+                    const json = await getRes.json();
+                    currentSha = json.sha;
+                }
+
+                // 2. PUT new data
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify(app))));
+                const body = { message: "Update data", content: content };
+                if (currentSha) body.sha = currentSha;
+
                 const res = await fetch(`https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/data.json`, {
                     method: 'PUT',
                     headers: { 'Authorization': `token ${ghConfig.token}`, 'Content-Type': 'application/json' },
@@ -392,23 +343,34 @@
                     const json = await res.json();
                     ghConfig.sha = json.content.sha;
                     localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
-                } else if(res.status === 409) {
-                    await loadFromGitHub(); await saveToGitHub(); // Conflict -> Pull -> Push
                 } else {
-                    alert("Save Failed! Check permissions.");
+                    const err = await res.text();
+                    alert("Save Failed: " + err);
                 }
-            } catch(e) { alert("Network Error: Could not save."); console.error(e); }
+            } catch(e) { alert("Network Error"); console.error(e); }
             isSyncing = false; updateSyncStatus();
         }
 
-        // --- SETTINGS UI ---
+        async function testConnection() {
+            const user = document.getElementById('ghUser').value;
+            const repo = document.getElementById('ghRepo').value;
+            const token = document.getElementById('ghToken').value;
+            
+            const headers = { 'Accept': 'application/vnd.github.v3+json' };
+            if(token) headers['Authorization'] = `token ${token}`;
+
+            try {
+                const res = await fetch(`https://api.github.com/repos/${user}/${repo}`, { headers });
+                if(res.ok) alert("Connection Successful! Repo exists and is accessible.");
+                else alert("Connection Failed. Check Username, Repo Name, or Token.");
+            } catch(e) { alert("Network Error"); }
+        }
+
         function openGitHubModal() {
             document.getElementById('githubModal').classList.remove('hidden');
-            if(ghConfig) {
-                document.getElementById('ghUser').value = ghConfig.user || DEFAULT_GH_USER;
-                document.getElementById('ghRepo').value = ghConfig.repo || DEFAULT_GH_REPO;
-                document.getElementById('ghToken').value = ghConfig.token || '';
-            }
+            document.getElementById('ghUser').value = ghConfig.user;
+            document.getElementById('ghRepo').value = ghConfig.repo;
+            document.getElementById('ghToken').value = ghConfig.token;
         }
 
         function saveGithubConfig() {
@@ -417,7 +379,6 @@
             const token = document.getElementById('ghToken').value.trim();
             
             if(user && repo) {
-                // Empty token = Read Only
                 const isReadOnly = (token === "");
                 ghConfig = { user, repo, token, sha: null, readOnly: isReadOnly };
                 localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(ghConfig));
@@ -438,7 +399,6 @@
             if(pageId === 'columns') renderColumnManager();
         }
 
-        // --- DATA MANAGEMENT ---
         function loadData() {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
@@ -488,7 +448,7 @@
             const empty = document.getElementById('emptyState');
             const filter = document.getElementById('searchInput').value.toLowerCase();
 
-            if (!g) return;
+            if(!g) return;
 
             thead.innerHTML = `<th class="p-3 border-b border-r border-slate-200 sticky-col min-w-[140px] bg-slate-50">Name</th>`;
             g.columns.forEach(c => { thead.innerHTML += `<th class="p-3 border-b border-slate-200 text-center min-w-[60px]">${c.name}</th>`; });
