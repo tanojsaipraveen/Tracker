@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Monthly Tracker</title>
     
-    <!-- PWA Settings (Android/Chrome) -->
+    <!-- PWA Settings (Chrome/Android) -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ffffff">
     <meta name="mobile-web-app-capable" content="yes">
 
-    <!-- PWA Settings (iOS/Safari - CRITICAL for fullscreen) -->
+    <!-- PWA Settings (iOS/Safari) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Tracker">
-    <link rel="apple-touch-icon" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/table-list.svg">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%232563eb'%3E%3Cpath d='M64 32C28.7 32 0 60.7 0 96v320c0 35.3 28.7 64 64 64h384c35.3 0 64-28.7 64-64V96c0-35.3-28.7-64-64-64H64zM224 352c0 17.7-14.3 32-32 32s-32-14.3-32-32v-96c0-17.7 14.3-32 32-32s32 14.3 32 32v96zm128 0c0 17.7-14.3 32-32 32s-32-14.3-32-32v-96c0-17.7 14.3-32 32-32s32 14.3 32 32v96z'/%3E%3C/svg%3E">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -25,7 +25,7 @@
             overflow: hidden; background-color: #f8fafc;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             -webkit-tap-highlight-color: transparent;
-            overscroll-behavior: none; /* Prevents pull-to-refresh on mobile */
+            overscroll-behavior: none;
         }
         body { display: flex; flex-direction: column; }
 
@@ -123,6 +123,15 @@
         <header class="bg-white border-b border-slate-200 px-4 py-4 shadow-sm shrink-0"><h1 class="text-xl font-bold text-slate-800">Tools</h1><p class="text-xs text-slate-500">Backup and Restore</p></header>
         <div class="p-4 space-y-4 flex-1 overflow-y-auto pb-24">
             
+            <!-- Install App Banner (Only shows if installable) -->
+            <div id="installAppContainer" class="hidden bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-5 shadow-lg text-white mb-4">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"><i class="fas fa-download text-lg"></i></div>
+                    <div><h3 class="font-bold">Install App</h3><p class="text-xs opacity-90">Add to Home Screen for fullscreen</p></div>
+                </div>
+                <button id="installBtn" class="w-full py-2 bg-white text-blue-600 rounded-lg text-sm font-bold shadow-sm">Install Now</button>
+            </div>
+
             <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                 <div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><i class="fas fa-file-export"></i></div><div><h3 class="font-bold text-slate-800">Export Data</h3><p class="text-xs text-slate-500">Save current group</p></div></div>
                 <div class="grid grid-cols-2 gap-2">
@@ -242,8 +251,23 @@
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 deferredPrompt = e;
-                // Add your custom install button logic here if needed, or rely on browser prompt
+                // If you want to show the custom install button, you can uncomment this:
+                // document.getElementById('installAppContainer').classList.remove('hidden');
             });
+
+            // If you have a custom install button, add listener:
+            if (document.getElementById('installBtn')) {
+                document.getElementById('installBtn').addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        if (outcome === 'accepted') {
+                            document.getElementById('installAppContainer').classList.add('hidden');
+                        }
+                        deferredPrompt = null;
+                    }
+                });
+            }
         });
 
         // --- NAVIGATION ---
